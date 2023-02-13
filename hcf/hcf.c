@@ -34,7 +34,7 @@ int main()
         printf("Unable to create file.");
     printf("Starting...\n");
     // Create a raw socket that shall sniff
-    sock_raw = socket(AF_INET6, SOCK_RAW, IPPROTO_TCP);
+    sock_raw = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
     if (sock_raw < 0)
     {
         printf("Socket Error\n");

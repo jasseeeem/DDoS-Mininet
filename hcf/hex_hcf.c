@@ -1,10 +1,8 @@
-#include <stdio.h>           //For standard things
-#include <stdlib.h>          //malloc
-#include <string.h>          //memset
-#include <netinet/ip_icmp.h> //Provides declarations for icmp header
-#include <netinet/udp.h>     //Provides declarations for udp header
-#include <netinet/tcp.h>     //Provides declarations for tcp header
-#include <netinet/ip.h>      //Provides declarations for ip header
+#include <stdio.h>       //For standard things
+#include <stdlib.h>      //malloc
+#include <string.h>      //memset
+#include <netinet/tcp.h> //Provides declarations for tcp header
+#include <netinet/ip.h>  //Provides declarations for ip header
 #include <netinet/ip6.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -15,6 +13,9 @@
 #include <linux/if_packet.h>
 #include <linux/types.h>
 #include <net/ethernet.h>
+#include <string.h>
+
+#define HLIM_BYTE_POSITION 21
 
 void ProcessPacket(unsigned char *, int);
 void print_ip6_header(unsigned char *, int);
@@ -25,6 +26,18 @@ int sock_raw;
 FILE *logfile;
 int tcp = 0, udp = 0, icmp = 0, others = 0, igmp = 0, total = 0, i, j;
 struct sockaddr_in6 source, dest;
+
+int hlim_to_hop_count(int hlim)
+{
+    if (hlim > 255 || hlim < 0)
+        return -1;
+    else if (hlim < 64)
+        return 63 - hlim;
+    else if (hlim < 128)
+        return 127 - hlim;
+    else
+        return 255 - hlim;
+}
 
 int main()
 {
@@ -70,23 +83,31 @@ int main()
 
 void ProcessPacket(unsigned char *buffer, int size)
 {
-    int i, count = 0;
-    char hlim_str[3] = {0};
-    for (i = 0; i < size; i++)
-    {
-        count++;
-        if (count == 22)
-        {
-            int hlim;
-            snprintf(hlim_str, sizeof(hlim_str), "%02x", buffer[i]);
-            hlim = (int)strtol(hlim_str, NULL, 16);
-            printf("hlim: %d\n", hlim);
-            printf("Source Address: ");
-        }
-        if (count >= 23 && count <= 39)
-        {
-            printf("%02x", buffer[i]);
-        }
-    }
-    printf("\n\n");
+    int i, hlim;
+    char hlim_str[3] = {0}, src_ip[40];
+
+    snprintf(hlim_str, sizeof(hlim_str), "%02x", buffer[HLIM_BYTE_POSITION]);
+    hlim = (int)strtol(hlim_str, NULL, 16);
+    printf("Hop Count: %d\n", hlim_to_hop_count(hlim));
+
+    snprintf(src_ip,
+             40,
+             "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+             buffer[HLIM_BYTE_POSITION + 1],
+             buffer[HLIM_BYTE_POSITION + 2],
+             buffer[HLIM_BYTE_POSITION + 3],
+             buffer[HLIM_BYTE_POSITION + 4],
+             buffer[HLIM_BYTE_POSITION + 5],
+             buffer[HLIM_BYTE_POSITION + 6],
+             buffer[HLIM_BYTE_POSITION + 7],
+             buffer[HLIM_BYTE_POSITION + 8],
+             buffer[HLIM_BYTE_POSITION + 9],
+             buffer[HLIM_BYTE_POSITION + 10],
+             buffer[HLIM_BYTE_POSITION + 11],
+             buffer[HLIM_BYTE_POSITION + 12],
+             buffer[HLIM_BYTE_POSITION + 13],
+             buffer[HLIM_BYTE_POSITION + 14],
+             buffer[HLIM_BYTE_POSITION + 15],
+             buffer[HLIM_BYTE_POSITION + 16]);
+    printf("Source Address: %s\n\n", src_ip);
 }

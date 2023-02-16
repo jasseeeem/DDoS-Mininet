@@ -1,19 +1,10 @@
-#include <stdio.h>       //For standard things
-#include <stdlib.h>      //malloc
-#include <string.h>      //memset
-#include <netinet/tcp.h> //Provides declarations for tcp header
-#include <netinet/ip.h>  //Provides declarations for ip header
-#include <netinet/ip6.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <netinet/in.h>
-#include <linux/if_packet.h>
-#include <linux/types.h>
 #include <net/ethernet.h>
-#include <string.h>
 
 #define HLIM_BYTE_POSITION 21
 

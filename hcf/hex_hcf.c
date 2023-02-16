@@ -9,69 +9,29 @@
 
 #define HLIM_BYTE_POSITION 21
 
+
+int hlim_to_hop_count(int);
 void ProcessPacket(unsigned char *, int);
-void print_ip6_header(unsigned char *, int);
-void print_tcp_packet(unsigned char *, int);
-void PrintData(unsigned char *, int);
+
 
 int sock_raw;
-FILE *logfile;
-int tcp = 0, udp = 0, icmp = 0, others = 0, igmp = 0, total = 0, i, j;
+int i, j;
 struct sockaddr_in6 source, dest;
+
 
 int hlim_to_hop_count(int hlim)
 {
     if (hlim > 255 || hlim < 0)
         return -1;
-    else if (hlim < 64)
-        return 63 - hlim;
-    else if (hlim < 128)
-        return 127 - hlim;
+    else if (hlim <= 64)
+        return 64 - hlim;
+    else if (hlim <= 128)
+        return 128 - hlim;
     else
         return 255 - hlim;
 }
 
-int main()
-{
-    int data_size;
-    struct sockaddr_in6 saddr;
-    socklen_t saddr_size;
-    struct in_addr in;
 
-    logfile = fopen("hcf.log", "w");
-    if (logfile == NULL)
-    {
-        printf("Unable to create file.");
-    }
-
-    printf("Starting...\n");
-    sock_raw = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
-    if (sock_raw < 0)
-    {
-        printf("Socket Error\n");
-        return 1;
-    }
-
-    unsigned char *buffer = (unsigned char *)malloc(65536);
-    while (1)
-    {
-        saddr_size = sizeof(saddr);
-        // Receive a packet
-        data_size = recvfrom(sock_raw, buffer, 65536, 0, (struct sockaddr *)&saddr, &saddr_size);
-        if (data_size < 0)
-        {
-            printf("Recvfrom error , failed to get packets\n");
-            return 1;
-        }
-        // Now process the packet
-        ProcessPacket(buffer, data_size);
-
-        // NEED A WAY TO TERMINATE THE LOOP
-    }
-    close(sock_raw);
-    printf("Finished");
-    return 0;
-}
 
 void ProcessPacket(unsigned char *buffer, int size)
 {
@@ -102,4 +62,42 @@ void ProcessPacket(unsigned char *buffer, int size)
              buffer[HLIM_BYTE_POSITION + 15],
              buffer[HLIM_BYTE_POSITION + 16]);
     printf("Source Address: %s\n\n", src_ip);
+}
+
+
+
+int main()
+{
+    int data_size;
+    struct sockaddr_in6 saddr;
+    socklen_t saddr_size;
+    struct in_addr in;
+
+    printf("Starting...\n");
+    sock_raw = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
+    if (sock_raw < 0)
+    {
+        printf("Socket Error\n");
+        return 1;
+    }
+
+    unsigned char *buffer = (unsigned char *)malloc(65536);
+    while (1)
+    {
+        saddr_size = sizeof(saddr);
+        // Receive a packet
+        data_size = recvfrom(sock_raw, buffer, 65536, 0, (struct sockaddr *)&saddr, &saddr_size);
+        if (data_size < 0)
+        {
+            printf("Recvfrom error , failed to get packets\n");
+            return 1;
+        }
+        // Now process the packet
+        ProcessPacket(buffer, data_size);
+
+        // NEED A WAY TO TERMINATE THE LOOP
+    }
+    close(sock_raw);
+    printf("Finished");
+    return 0;
 }

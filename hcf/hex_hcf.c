@@ -9,15 +9,12 @@
 
 #define HLIM_BYTE_POSITION 21
 
-
 int hlim_to_hop_count(int);
 void ProcessPacket(unsigned char *, int);
-
 
 int sock_raw;
 int i, j;
 struct sockaddr_in6 source, dest;
-
 
 int hlim_to_hop_count(int hlim)
 {
@@ -31,8 +28,6 @@ int hlim_to_hop_count(int hlim)
         return 255 - hlim;
 }
 
-
-
 void ProcessPacket(unsigned char *buffer, int size)
 {
     int i, hlim;
@@ -40,7 +35,6 @@ void ProcessPacket(unsigned char *buffer, int size)
 
     snprintf(hlim_str, sizeof(hlim_str), "%02x", buffer[HLIM_BYTE_POSITION]);
     hlim = (int)strtol(hlim_str, NULL, 16);
-    printf("Hop Count: %d\n", hlim_to_hop_count(hlim));
 
     snprintf(src_ip,
              40,
@@ -61,10 +55,10 @@ void ProcessPacket(unsigned char *buffer, int size)
              buffer[HLIM_BYTE_POSITION + 14],
              buffer[HLIM_BYTE_POSITION + 15],
              buffer[HLIM_BYTE_POSITION + 16]);
+
+    printf("Hop Count: %d\n", hlim_to_hop_count(hlim));
     printf("Source Address: %s\n\n", src_ip);
 }
-
-
 
 int main()
 {

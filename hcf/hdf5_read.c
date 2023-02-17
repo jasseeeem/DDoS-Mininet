@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <hdf5.h>
+#include "hdf5.h"
 
 int main(int argc, char *argv[]) {
     hid_t file_id;          // variable to store the file identifier

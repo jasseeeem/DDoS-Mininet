@@ -65,8 +65,7 @@ main (void)
      * Create a new dataset within the file using defined dataspace and
      * datatype and default dataset creation properties.
      */
-    dataset = H5Dcreate(file, DATASETNAME, datatype, dataspace,
-			H5P_DEFAULT);
+    dataset = H5Dcreate(file, DATASETNAME, datatype, dataspace,H5P_DEFAULT);
 
     /*
      * Write the data to the dataset using default transfer properties.

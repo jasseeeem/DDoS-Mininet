@@ -9,12 +9,59 @@
 
 #define HLIM_BYTE_POSITION 21
 
+#define MURMUR_C1 0xcc9e2d51
+#define MURMUR_C2 0x1b873593
+#define MURMUR_R1 15
+#define MURMUR_R2 13
+#define MURMUR_M 5
+#define MURMUR_N 0xe6546b64
+
 int hlim_to_hop_count(int);
 void ProcessPacket(unsigned char *, int);
 
 int sock_raw;
 int i, j;
 struct sockaddr_in6 source, dest;
+
+// MurmurHash3_x86_32 hash function
+uint32_t murmur_hash(const char *key, size_t len, uint32_t seed)
+{
+    uint32_t h = seed;
+    const uint32_t *data = (const uint32_t *)key;
+    const size_t nblocks = len / 4;
+    for (size_t i = 0; i < nblocks; i++)
+    {
+        uint32_t k = data[i];
+        k *= MURMUR_C1;
+        k = (k << MURMUR_R1) | (k >> (32 - MURMUR_R1));
+        k *= MURMUR_C2;
+        h ^= k;
+        h = (h << MURMUR_R2) | (h >> (32 - MURMUR_R2));
+        h = h * MURMUR_M + MURMUR_N;
+    }
+    const uint8_t *tail = (const uint8_t *)(key + nblocks * 4);
+    uint32_t k1 = 0;
+    switch (len & 3)
+    {
+    case 3:
+        k1 ^= tail[2] << 16;
+    case 2:
+        k1 ^= tail[1] << 8;
+    case 1:
+        k1 ^= tail[0];
+        k1 *= MURMUR_C1;
+        k1 = (k1 << MURMUR_R1) | (k1 >> (32 - MURMUR_R1));
+        k1 *= MURMUR_C2;
+        h ^= k1;
+    }
+    h ^= len;
+    h ^= h >> 16;
+    h *= 0x85ebca6b;
+    h ^= h >> 13;
+    h *= 0xc2b2ae35;
+    h ^= h >> 16;
+    return h;
+}
 
 int hlim_to_hop_count(int hlim)
 {
@@ -32,6 +79,8 @@ void ProcessPacket(unsigned char *buffer, int size)
 {
     int i, hlim;
     char hlim_str[3] = {0}, src_ip[40];
+    struct in6_addr ip_addr;
+    uint32_t hash;
 
     snprintf(hlim_str, sizeof(hlim_str), "%02x", buffer[HLIM_BYTE_POSITION]);
     hlim = (int)strtol(hlim_str, NULL, 16);
@@ -55,9 +104,13 @@ void ProcessPacket(unsigned char *buffer, int size)
              buffer[HLIM_BYTE_POSITION + 14],
              buffer[HLIM_BYTE_POSITION + 15],
              buffer[HLIM_BYTE_POSITION + 16]);
+    printf("Source Address: %s\n", src_ip);
 
-    printf("Hop Count: %d\n", hlim_to_hop_count(hlim));
-    printf("Source Address: %s\n\n", src_ip);
+    inet_pton(AF_INET6, src_ip, &ip_addr);
+    hash = murmur_hash((const char *)&ip_addr, sizeof(ip_addr), 0);
+    hash = (hash >> 8) & 0xffffff; // Take the least significant 24 bits
+
+    printf("Hash value: %06x\n\n", hash);
 }
 
 int main()

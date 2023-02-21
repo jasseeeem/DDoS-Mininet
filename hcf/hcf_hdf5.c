@@ -1,4 +1,3 @@
-
 /*  
  *  This example writes data to the HDF5 file.
  *  Data conversion is performed during write operation.  
@@ -7,30 +6,41 @@
 #include <stddef.h>
 #include <hdf5.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#define FILE        "hdf5.h5"
+#define FILE "hdf5.h5"
 #define DATASETNAME "IntArray" 
-#define NX     2000                      /* dataset dimensions */
-#define NY     2000
-#define RANK   2
+#define NX 4096                    /* dataset dimensions */
+#define NY 4096
+#define RANK 2
 
-int
-main (void)
+int main()
 {
-    hid_t       file, dataset;         /* file and dataset handles */
-    hid_t       datatype, dataspace;   /* handles */
-    hsize_t     dimsf[2];              /* dataset dimensions */
-    herr_t      status;                             
-    int         data[NX][NY];          /* data to write */
-    int         i, j;
+    hid_t file, dataset;         /* file and dataset handles */
+    hid_t datatype, dataspace;   /* handles */
+    hsize_t dimsf[2];              /* dataset dimensions */
+    herr_t status;                             
+    
+    int ** data;          /* data to write */
+    int i, j;
+
+    /* dynamically allocating memory to the matrix*/
+    data = (int **)malloc(NX * sizeof(int *));
+    for(i=0; i<NX; i++)
+    {
+        data[i] = (int *)malloc(NY * sizeof(int));
+    }
 
     /* 
      * Data  and output buffer initialization. 
      */
-    for (j = 0; j < NX; j++) {
-	for (i = 0; i < NY; i++)
-	    data[j][i] = i + j;
-    }     
+    for(i=0; i<NX; i++)
+    {
+        for(j=0; j<NY; j++)
+        {
+            data[i][j] = -1;
+        }
+    } 
     /*
      * 0 1 2 3 4 5 
      * 1 2 3 4 5 6
@@ -71,7 +81,7 @@ main (void)
      * Write the data to the dataset using default transfer properties.
      */
     status = H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
-		      H5P_DEFAULT, data);
+              H5P_DEFAULT, data);
 
     /*
      * Close/release resources.
@@ -82,4 +92,4 @@ main (void)
     H5Fclose(file);
  
     return 0;
-}     
+}

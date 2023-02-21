@@ -7,6 +7,8 @@
 #include <netinet/in.h>
 #include <net/ethernet.h>
 
+#include "hcf_hdf5.c"
+
 #define HLIM_BYTE_POSITION 21
 
 #define MURMUR_C1 0xcc9e2d51
@@ -81,6 +83,10 @@ void ProcessPacket(unsigned char *buffer, int size)
     char hlim_str[3] = {0}, src_ip[40];
     struct in6_addr ip_addr;
     uint32_t hash;
+<<<<<<< HEAD
+=======
+    char hash_left_str[10],hash_right_str[10];
+>>>>>>> 65bb994183ca6a8a44fcafd7e81c33c4f6730444
 
     snprintf(hlim_str, sizeof(hlim_str), "%02x", buffer[HLIM_BYTE_POSITION]);
     hlim = (int)strtol(hlim_str, NULL, 16);
@@ -110,7 +116,30 @@ void ProcessPacket(unsigned char *buffer, int size)
     hash = murmur_hash((const char *)&ip_addr, sizeof(ip_addr), 0);
     hash = (hash >> 8) & 0xffffff; // Take the least significant 24 bits
 
-    printf("Hash value: %06x\n\n", hash);
+    printf("Hash value: %06x\n", hash);
+
+    //new stuff
+    uint32_t hash_left, hash_right;
+    hash_left=(hash>>12);
+    printf("Hash left: %02x\n",hash_left);
+
+    hash_right=(hash& 0xfff);
+    printf("Hash right: %02x\n",hash_right);
+    
+    sprintf( hash_left_str, "%02x", hash_left );
+    sprintf( hash_right_str, "%02x", hash_right );
+    // printf("Hash string: %s\n", hexstr);
+
+    int hash_left_int, hash_right_int;
+    hash_left_int=(int)strtol(hash_left_str,NULL,16);
+    printf("Hash left int: %d\n", hash_left_int);
+    hash_right_int=(int)strtol(hash_right_str,NULL,16);
+    printf("Hash left int: %d\n", hash_right_int);
+
+    if (update_hlim_value(hash_left_int, hash_right_int, hlim_to_hop_count(hlim))==0)
+        printf("Hlim updated \n\n");
+
+    //end of new stuff
 }
 
 int main()
@@ -119,7 +148,7 @@ int main()
     struct sockaddr_in6 saddr;
     socklen_t saddr_size;
     struct in_addr in;
-
+    main_();
     printf("Starting...\n");
     sock_raw = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
     if (sock_raw < 0)

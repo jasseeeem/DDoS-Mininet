@@ -93,7 +93,6 @@ int main_()
     // }
 
     memset(data, -1, NX * NY * sizeof(int));
-
     /*
      * 0 1 2 3 4 5 
      * 1 2 3 4 5 6
@@ -133,8 +132,7 @@ int main_()
     /*
      * Write the data to the dataset using default transfer properties.
      */
-    status = H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL,
-		      H5P_DEFAULT, data);
+    status = H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
 
     /*
      * Close/release resources.
@@ -145,4 +143,4 @@ int main_()
     H5Fclose(file);
  
     return 0;
-}     
+}

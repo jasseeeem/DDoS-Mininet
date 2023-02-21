@@ -10,8 +10,8 @@
 
 #define FILE        "hdf5.h5"
 #define DATASETNAME "IntArray" 
-#define NX     5                      /* dataset dimensions */
-#define NY     6
+#define NX     2000                      /* dataset dimensions */
+#define NY     2000
 #define RANK   2
 
 int

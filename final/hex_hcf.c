@@ -67,15 +67,15 @@ void ProcessPacket(unsigned char *buffer, int size)
     hash = murmur_hash((const char *)&ip_addr, sizeof(ip_addr), 0);
     hash = (hash >> 8) & 0xffffff; // Take the least significant 24 bits
 
-    printf("Hash value: %06x\n", hash);
+    // printf("Hash value: %06x\n", hash);
 
     // new stuff
     uint32_t hash_left, hash_right;
     hash_left = (hash >> 12);
-    printf("Hash left: %02x\n", hash_left);
+    // printf("Hash left: %02x\n", hash_left);
 
     hash_right = (hash & 0xfff);
-    printf("Hash right: %02x\n", hash_right);
+    // printf("Hash right: %02x\n", hash_right);
 
     sprintf(hash_left_str, "%02x", hash_left);
     sprintf(hash_right_str, "%02x", hash_right);
@@ -83,12 +83,12 @@ void ProcessPacket(unsigned char *buffer, int size)
 
     int hash_left_int, hash_right_int;
     hash_left_int = (int)strtol(hash_left_str, NULL, 16);
-    printf("Hash left int: %d\n", hash_left_int);
+    // printf("Hash left int: %d\n", hash_left_int);
     hash_right_int = (int)strtol(hash_right_str, NULL, 16);
-    printf("Hash left int: %d\n", hash_right_int);
+    // printf("Hash right int: %d\n", hash_right_int);
 
-    if (update_hlim_value(hash_left_int, hash_right_int, hlim_to_hop_count(hlim)) == 0)
-        printf("Hlim updated \n\n");
+    if (update_hop_count(hash_left_int, hash_right_int, hlim_to_hop_count(hlim)) == 0)
+        printf("HCF table updated \n\n");
 
     // end of new stuff
 }

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdint.h>
+#include "murmur_hash.h"
 
 #define MURMUR_C1 0xcc9e2d51
 #define MURMUR_C2 0x1b873593
@@ -8,6 +9,7 @@
 #define MURMUR_M 5
 #define MURMUR_N 0xe6546b64
 
+// MurmurHash3_x86_32 hash function
 uint32_t murmur_hash(const char *key, size_t len, uint32_t seed)
 {
     uint32_t h = seed;

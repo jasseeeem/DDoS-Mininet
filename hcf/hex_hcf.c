@@ -29,7 +29,7 @@ struct sockaddr_in6 source, dest;
 // MurmurHash3_x86_32 hash function
 uint32_t murmur_hash(const char *key, size_t len, uint32_t seed) {
     uint32_t h = seed;
-    const uint32_t *data = (const uint32_t *) key;
+    const uint32_t * data = (const uint32_t *) key;
     const size_t nblocks = len / 4;
     for (size_t i = 0; i < nblocks; i++) {
         uint32_t k = data[i];

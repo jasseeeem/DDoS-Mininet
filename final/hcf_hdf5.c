@@ -1,9 +1,3 @@
-
-/*
- *  This example writes data to the HDF5 file.
- *  Data conversion is performed during write operation.
- */
-
 #include <stddef.h>
 #include <hdf5.h>
 #include <stdio.h>
@@ -11,7 +5,7 @@
 
 #define FILE "hdf5.h5"
 #define DATASETNAME "IntArray"
-#define NX 4096 /* dataset dimensions */
+#define NX 4096
 #define NY 4096
 #define RANK 2
 
@@ -23,7 +17,7 @@ int update_hop_count(int row, int col, int hop_count)
 
     int *data;
     /* dynamically allocating memory to the matrix*/
-    data = (int *)malloc(16777216 * sizeof(int));
+    data = (int *)malloc(NX * NY * sizeof(int));
 
     file = H5Fopen(FILE, H5F_ACC_RDWR, H5P_DEFAULT);
     dataset = H5Dopen2(file, DATASETNAME, H5P_DEFAULT);

@@ -104,6 +104,8 @@ int main()
     socklen_t saddr_size;
     struct in_addr in;
 
+    hid_t file;
+
     printf("Starting HCF...\n");
     get_or_create_table();
 
@@ -129,6 +131,7 @@ int main()
         ProcessPacket(buffer, data_size);
 
         // NEED A WAY TO TERMINATE THE LOOP
+        // NEED A WAY TO CLOSE THE H5 FILE POINTER AFTER PROGRAM TERMINATION
     }
     close(sock_raw);
     printf("Finished");

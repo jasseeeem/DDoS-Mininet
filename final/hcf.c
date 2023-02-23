@@ -89,7 +89,11 @@ void ProcessPacket(unsigned char *buffer, int size)
 
     if (check_hop_count(src_ip, hash_left_int, hash_right_int, hlim_to_hop_count(hlim)) == 0)
     {
-        printf("Hop Count Checked\n");
+        printf("✅ Hop Count checked\n");
+    }
+    else
+    {
+        printf("❌ Hop Count not checked\n");
     }
 }
 
@@ -100,8 +104,9 @@ int main()
     socklen_t saddr_size;
     struct in_addr in;
 
+    printf("Starting HCF...\n");
     get_or_create_table();
-    printf("Starting...\n");
+
     sock_raw = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));
     if (sock_raw < 0)
     {

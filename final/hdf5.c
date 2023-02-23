@@ -36,7 +36,8 @@ int check_hop_count(char src_ip[], int row, int col, int calculated_hop_count)
     }
     else
     {
-        printf("❌ Hop Count does not match - Add drop rule");
+        printf("❌ Hop Count does not match - Possible IP spoofing");
+        // add drop rule
     }
     status = H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
     H5Dclose(dataset);

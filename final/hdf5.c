@@ -13,21 +13,32 @@
 
 int check_hop_count(char src_ip[], int row, int col, int calculated_hop_count)
 {
-    hid_t file, dataset;
-    hid_t datatype, dataspace;
+    hid_t file, dataset, dataspace, memspace;
+    hsize_t start[2], count[2];
     herr_t status;
 
-    int *data;
-    /* dynamically allocating memory to the matrix*/
-    data = (int *)malloc(NX * NY * sizeof(int));
+    int data;
 
     file = H5Fopen(FILE, H5F_ACC_RDWR, H5P_DEFAULT);
     dataset = H5Dopen2(file, DATASETNAME, H5P_DEFAULT);
-    status = H5Dread(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
-    printf("[%d,%d] = %d -> %d\n", row, col, data[row * 4096 + col], calculated_hop_count);
+    dataspace = H5Dget_space(dataset);
+
+    start[0] = row;
+    start[1] = col;
+    count[0] = 1;
+    count[1] = 1;
+
+    /* Create a memory space for the subset */
+    memspace = H5Screate_simple(1, count, NULL);
+
+    /* Select the hyperslab in the dataspace */
+    H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, start, NULL, count, NULL);
+
+    status = H5Dread(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
+    printf("[%d,%d] = %d -> %d\n", row, col, data, calculated_hop_count);
 
     // next line only for testing
-    data[row * 4096 + col] = calculated_hop_count;
+    data = calculated_hop_count;
 
     // if (data[row * 4096 + col] == INITIAL_HOP_COUNT)
     // {
@@ -43,10 +54,13 @@ int check_hop_count(char src_ip[], int row, int col, int calculated_hop_count)
     //     // add drop rule
     // }
 
-    status = H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+    status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
+
+    H5Sclose(memspace);
+    H5Sclose(dataspace);
     H5Dclose(dataset);
     H5Fclose(file);
-    free(data);
+
     return 0;
 }
 

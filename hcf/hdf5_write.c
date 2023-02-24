@@ -16,7 +16,7 @@ int main(void) {
     // Initialize data
     for (int i = 0; i < DIM0; i++) {
         for (int j = 0; j < DIM1; j++) {
-            data[i][j] = i * DIM1 + j;
+            data[i][j] = i+j;
         }
     }
 

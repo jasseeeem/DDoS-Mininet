@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "murmur_hash.h": "c",
-        "math.h": "c"
+        "math.h": "c",
+        "stdlib.h": "c"
     }
 }

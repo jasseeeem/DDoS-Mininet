@@ -12,23 +12,19 @@
 
 #define HLIM_BYTE_POSITION 21
 
-int hlim_to_hop_count(int);
-void ProcessPacket(unsigned char *, int);
-
 int sock_raw;
 int i, j;
 struct sockaddr_in6 source, dest;
 
-int hlim_to_hop_count(int hlim)
+int starts_with(const char *str, const char *prefix)
 {
-    if (hlim > 255 || hlim < 0)
-        return -1;
-    else if (hlim <= 64)
-        return 64 - hlim;
-    else if (hlim <= 128)
-        return 128 - hlim;
-    else
-        return 255 - hlim;
+    size_t prefix_len = strlen(prefix);
+    return strncmp(str, prefix, prefix_len) == 0;
+}
+
+int is_ip_routable(char src_ip[])
+{
+    return !starts_with(src_ip, "fe80");
 }
 
 void ProcessPacket(unsigned char *buffer, int size)
@@ -87,13 +83,20 @@ void ProcessPacket(unsigned char *buffer, int size)
     hash_right_int = (int)strtol(hash_right_str, NULL, 16);
     // printf("Hash right int: %d\n", hash_right_int);
 
-    if (check_hop_count(src_ip, hash_left_int, hash_right_int, hlim_to_hop_count(hlim)) == 0)
+    if (is_ip_routable(src_ip) == 1)
     {
-        printf("✅ Hop Count checked\n");
+        if (check_hop_count(src_ip, hash_left_int, hash_right_int, hlim) == 0)
+        {
+            printf("✅ Hop Count checked\n\n");
+        }
+        else
+        {
+            printf("❌ Hop Count not checked\n\n");
+        }
     }
     else
     {
-        printf("❌ Hop Count not checked\n");
+        printf("⛔ IP is not routable\n\n");
     }
 }
 

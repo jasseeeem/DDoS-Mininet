@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "curl.c"
+
 #define FILE "hdf5.h5"
 #define DATASETNAME "IntArray"
 #define NX 4096
@@ -10,16 +12,30 @@
 #define RANK 2
 #define ALLOWED_HOP_COUNT_DIFFERENCE 2
 #define INITIAL_HOP_COUNT -1
+#define INTERMEDIATE_VALUE -2
 
-int check_hop_count(char src_ip[], int row, int col, int calculated_hop_count)
+int hlim_to_hop_count(int hlim)
+{
+    if (hlim > 255 || hlim < 0)
+        return -1;
+    else if (hlim <= 64)
+        return 64 - hlim;
+    else if (hlim <= 128)
+        return 128 - hlim;
+    else
+        return 255 - hlim;
+}
+
+int check_hop_count(char src_ip[], int row, int col, int hlim)
 {
     hid_t file, dataset, dataspace, memspace;
     hsize_t start[2], count[2];
     herr_t status;
 
-    int data;
+    int data, calculated_hop_count = hlim_to_hop_count(hlim);
 
     file = H5Fopen(FILE, H5F_ACC_RDWR, H5P_DEFAULT);
+    // file = get_or_create_table();
     dataset = H5Dopen2(file, DATASETNAME, H5P_DEFAULT);
     dataspace = H5Dget_space(dataset);
 
@@ -38,23 +54,28 @@ int check_hop_count(char src_ip[], int row, int col, int calculated_hop_count)
     printf("[%d,%d] = %d -> %d\n", row, col, data, calculated_hop_count);
 
     // next line only for testing
-    data = calculated_hop_count;
+    // data = calculated_hop_count;
 
-    // if (data[row * 4096 + col] == INITIAL_HOP_COUNT)
-    // {
-    //     // do a curl and get the value
-    // }
-    // else if (abs(data[row * 4096 + col] - calculated_hop_count) <= ALLOWED_HOP_COUNT_DIFFERENCE)
-    // {
-    //     printf("✅ Hop Count within the allowed limit\n");
-    // }
-    // else
-    // {
-    //     printf("❌ Hop Count does not match - Possible IP spoofing");
-    //     // add drop rule
-    // }
-
-    status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
+    if (data == INITIAL_HOP_COUNT)
+    {
+        // data = INTERMEDIATE_VALUE;
+        data = hlim_to_hop_count(curl_to_hlim(src_ip));
+        status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
+        printf("Curled value: %d\n", data);
+    }
+    else if (abs(data - calculated_hop_count) <= ALLOWED_HOP_COUNT_DIFFERENCE)
+    {
+        printf("✅ Hop Count within the allowed limit\n");
+    }
+    else if (data == INTERMEDIATE_VALUE)
+    {
+        printf("💥💥💥💥💥💥💥💥 Dropping packets as the hop count is being calculated\n");
+    }
+    else
+    {
+        printf("❌ Hop Count does not match - Possible IP spoofing\n");
+        // add drop rule
+    }
 
     H5Sclose(memspace);
     H5Sclose(dataspace);
@@ -95,6 +116,7 @@ void get_or_create_table()
 
             status = H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
 
+            // veno?
             H5Sclose(dataspace);
             H5Tclose(datatype);
             H5Dclose(dataset);

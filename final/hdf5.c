@@ -22,7 +22,6 @@ int check_hop_count(char src_ip[], int row, int col, int calculated_hop_count)
     data = (int *)malloc(NX * NY * sizeof(int));
 
     file = H5Fopen(FILE, H5F_ACC_RDWR, H5P_DEFAULT);
-    // file = get_or_create_table();
     dataset = H5Dopen2(file, DATASETNAME, H5P_DEFAULT);
     status = H5Dread(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
     printf("[%d,%d] = %d -> %d\n", row, col, data[row * 4096 + col], calculated_hop_count);
@@ -46,7 +45,7 @@ int check_hop_count(char src_ip[], int row, int col, int calculated_hop_count)
 
     status = H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
     H5Dclose(dataset);
-    // H5Fclose(file);
+    H5Fclose(file);
     free(data);
     return 0;
 }
@@ -82,7 +81,6 @@ void get_or_create_table()
 
             status = H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
 
-            // veno?
             H5Sclose(dataspace);
             H5Tclose(datatype);
             H5Dclose(dataset);
@@ -90,10 +88,6 @@ void get_or_create_table()
     }
     H5E_END_TRY;
     H5Fclose(file);
-    // H5Sclose(dataspace);
-    // H5Tclose(datatype);
-    // H5Dclose(dataset);
-    // veno?
 }
 
 // int main()

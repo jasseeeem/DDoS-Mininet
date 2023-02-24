@@ -12,17 +12,17 @@
 
 #define HLIM_BYTE_POSITION 21
 
-int hlim_to_hop_count(int);
+uint8_t hlim_to_hop_count(int);
 void ProcessPacket(unsigned char *, int);
 
 int sock_raw;
 int i, j;
 struct sockaddr_in6 source, dest;
 
-int hlim_to_hop_count(int hlim)
+uint8_t hlim_to_hop_count(int hlim)
 {
     if (hlim > 255 || hlim < 0)
-        return -1;
+        return 255;
     else if (hlim <= 64)
         return 64 - hlim;
     else if (hlim <= 128)

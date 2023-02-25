@@ -11,9 +11,9 @@
 #define NY 4096
 #define RANK 2
 #define ALLOWED_HOP_COUNT_DIFFERENCE 2
-#define INITIAL_HOP_COUNT 255
+#define INITIAL_HOP_COUNT -1
 
-uint8_t hlim_to_hop_count(int hlim)
+int hlim_to_hop_count(int hlim)
 {
     if (hlim > 255 || hlim < 0)
         return INITIAL_HOP_COUNT;
@@ -30,7 +30,9 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
     hid_t file, dataset, dataspace, memspace;
     hsize_t start[2], count[2];
     herr_t status;
-    uint8_t data, calculated_hop_count = hlim_to_hop_count(hlim);
+    int data;
+    int * calculated_hop_count = (int *)malloc(sizeof(int));
+    *calculated_hop_count = hlim_to_hop_count(hlim);
     file = H5Fopen(FILE, H5F_ACC_RDWR, H5P_DEFAULT);
     // file = get_or_create_table();
     dataset = H5Dopen2(file, DATASETNAME, H5P_DEFAULT);
@@ -46,12 +48,12 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
 
     /* Select the hyperslab in the dataspace */
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, start, NULL, count, NULL);
-    printf("Calculated: %u\n", calculated_hop_count);
+    printf("Calculated: %d\n", *calculated_hop_count);
     status = H5Dread(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
 
-    printf("Calculated: %u\n", calculated_hop_count);
+    printf("Calculated: %d\n", *calculated_hop_count);
 
-    printf("[%d,%d] = %u -> %u\n", row, col, data, calculated_hop_count);
+    printf("[%d,%d] = %d -> %d\n", row, col, data, *calculated_hop_count);
 
     // next line only for testing
     // data = calculated_hop_count;
@@ -61,13 +63,13 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
         // data = INTERMEDIATE_VALUE;
         data = hlim_to_hop_count(curl_to_hlim(src_ip));
         status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
-        printf("Curled value: %u\n", data);
+        printf("Curled value: %d\n", data);
     }
-    else if (abs(data - calculated_hop_count) <= ALLOWED_HOP_COUNT_DIFFERENCE)
+    else if (abs(data - *calculated_hop_count) <= ALLOWED_HOP_COUNT_DIFFERENCE)
     {
-        if (data != calculated_hop_count)
+        if (data != *calculated_hop_count)
         {
-            data = calculated_hop_count;
+            data = *calculated_hop_count;
             status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
         }
         printf("✅ Hop Count within the allowed limit\n");
@@ -81,6 +83,8 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
         printf("❌ Hop Count does not match - Possible IP spoofing\n");
         // add drop rule
     }
+
+    free(calculated_hop_count);
 
     H5Sclose(memspace);
     H5Sclose(dataspace);
@@ -106,9 +110,9 @@ void get_or_create_table()
         {
             file = H5Fcreate(FILE, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
-            uint8_t *data; /* data to write */
-            data = (uint8_t *)malloc(16777216 * sizeof(uint8_t));
-            memset(data, INITIAL_HOP_COUNT, NX * NY * sizeof(uint8_t));
+            int *data; /* data to write */
+            data = (int *)malloc(16777216 * sizeof(int));
+            memset(data, 255, NX * NY * sizeof(int));
 
             dimsf[0] = NX;
             dimsf[1] = NY;
@@ -121,6 +125,7 @@ void get_or_create_table()
 
             status = H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
 
+            free(data);
             // veno?
             H5Sclose(dataspace);
             H5Tclose(datatype);

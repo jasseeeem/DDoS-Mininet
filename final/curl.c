@@ -9,7 +9,7 @@
 #define MAX_PACKETS 1
 #define INTERFACE "enp0s3"
 
-int hlim = -1;
+int hlim;
 
 // void process_curl_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
 

@@ -4,13 +4,13 @@
 int main(void) {
     hid_t file_id, dataset_id, dataspace_id, memspace_id;
     hsize_t dims[2], start[2], count[2];
-    int data;
+    __uint8_t data;
 
     /* Open the file */
-    file_id = H5Fopen("example.h5", H5F_ACC_RDWR, H5P_DEFAULT);
+    file_id = H5Fopen("hdf5.h5", H5F_ACC_RDWR, H5P_DEFAULT);
 
     /* Open the dataset */
-    dataset_id = H5Dopen2(file_id, "dataset", H5P_DEFAULT);
+    dataset_id = H5Dopen2(file_id, "IntArray", H5P_DEFAULT);
 
     /* Get the dataspace */
     dataspace_id = H5Dget_space(dataset_id);
@@ -32,13 +32,13 @@ int main(void) {
     H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, start, NULL, count, NULL);
 
     /* Read the subset from the file into memory */
-    H5Dread(dataset_id, H5T_NATIVE_INT, memspace_id, dataspace_id, H5P_DEFAULT, &data);
+    H5Dread(dataset_id, H5T_NATIVE_UINT8, memspace_id, dataspace_id, H5P_DEFAULT, &data);
 
     /* Print the subset */
-    printf("%d\n", data);
+    printf("%u\n", data);
 
-    data = data * data;
-    H5Dwrite(dataset_id, H5T_NATIVE_INT, memspace_id, dataspace_id, H5P_DEFAULT, &data);
+    //data = data * data;
+    //H5Dwrite(dataset_id, H5T_NATIVE_INT, memspace_id, dataspace_id, H5P_DEFAULT, &data);
 
     /* Close the objects */
     H5Sclose(memspace_id);

@@ -12,7 +12,7 @@
 
 #define HLIM_BYTE_POSITION 21
 
-// uint8_t hlim_to_hop_count(int);
+// int hlim_to_hop_count(int);
 // void ProcessPacket(unsigned char *, int);
 
 int sock_raw;
@@ -27,7 +27,29 @@ int starts_with(const char *str, const char *prefix)
 
 int is_ip_routable(char src_ip[])
 {
-    return !starts_with(src_ip, "fe80");
+    if(starts_with(src_ip, "fe80"))
+        return 0;
+    else
+    if(starts_with(src_ip, "fc00"))
+        return 0;
+    else
+    if(starts_with(src_ip, "fd00"))
+        return 0;
+    else
+    if(starts_with(src_ip, "2001:0db8"))
+        return 0;
+    else
+    if(starts_with(src_ip, "2001:0010"))
+        return 0;
+    else
+    if(starts_with(src_ip, "2002"))
+        return 0;
+    else
+    if(starts_with(src_ip,"3ffe"))
+        return 0;
+    else
+        return 1;
+
 }
 
 void ProcessPacket(unsigned char *buffer, int size)
@@ -112,7 +134,7 @@ int main()
 
     hid_t file;
 
-    printf("Starting HCF...\n\n");
+    printf("Starting HCF...\n");
     get_or_create_table();
 
     sock_raw = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));

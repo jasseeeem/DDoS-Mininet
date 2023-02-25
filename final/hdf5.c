@@ -65,12 +65,13 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
     }
     else if (abs(data - calculated_hop_count) <= ALLOWED_HOP_COUNT_DIFFERENCE)
     {
+        status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
         printf("✅ Hop Count within the allowed limit\n");
     }
-    else if (data == INTERMEDIATE_VALUE)
-    {
-        printf("💥💥💥💥💥💥💥💥 Dropping packets as the hop count is being calculated\n");
-    }
+    // else if (data == INTERMEDIATE_VALUE)
+    // {
+    //     printf("💥💥💥💥💥💥💥💥 Dropping packets as the hop count is being calculated\n");
+    // }
     else
     {
         printf("❌ Hop Count does not match - Possible IP spoofing\n");

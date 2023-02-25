@@ -11,10 +11,9 @@
 #define NY 4096
 #define RANK 2
 #define ALLOWED_HOP_COUNT_DIFFERENCE 2
-#define INITIAL_HOP_COUNT -1
-#define INTERMEDIATE_VALUE -2
+#define INITIAL_HOP_COUNT 255
 
-int hlim_to_hop_count(int hlim)
+uint8_t hlim_to_hop_count(int hlim)
 {
     if (hlim > 255 || hlim < 0)
         return -1;
@@ -32,7 +31,8 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
     hsize_t start[2], count[2];
     herr_t status;
 
-    int data, calculated_hop_count = hlim_to_hop_count(hlim);
+    uint8_t calculated_hop_count = hlim_to_hop_count(hlim);
+    uint8_t data;
 
     file = H5Fopen(FILE, H5F_ACC_RDWR, H5P_DEFAULT);
     // file = get_or_create_table();
@@ -61,7 +61,7 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
         // data = INTERMEDIATE_VALUE;
         data = hlim_to_hop_count(curl_to_hlim(src_ip));
         status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
-        printf("Curled value: %d\n", data);
+        printf("Curled value: %u\n", data);
     }
     else if (abs(data - calculated_hop_count) <= ALLOWED_HOP_COUNT_DIFFERENCE)
     {
@@ -102,9 +102,9 @@ void get_or_create_table()
         {
             file = H5Fcreate(FILE, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
-            int *data; /* data to write */
-            data = (int *)malloc(16777216 * sizeof(int));
-            memset(data, INITIAL_HOP_COUNT, NX * NY * sizeof(int));
+            uint8_t *data; /* data to write */
+            data = (uint8_t *)malloc(16777216 * sizeof(uint8_t));
+            memset(data, INITIAL_HOP_COUNT, NX * NY * sizeof(uint8_t));
 
             dimsf[0] = NX;
             dimsf[1] = NY;

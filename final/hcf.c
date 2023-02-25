@@ -12,6 +12,9 @@
 
 #define HLIM_BYTE_POSITION 21
 
+// uint8_t hlim_to_hop_count(int);
+// void ProcessPacket(unsigned char *, int);
+
 int sock_raw;
 int i, j;
 struct sockaddr_in6 source, dest;

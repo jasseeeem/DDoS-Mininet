@@ -30,9 +30,7 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
     hid_t file, dataset, dataspace, memspace;
     hsize_t start[2], count[2];
     herr_t status;
-    printf("Hlim: %d\n", hlim);
     uint8_t data, calculated_hop_count = hlim_to_hop_count(hlim);
-
     file = H5Fopen(FILE, H5F_ACC_RDWR, H5P_DEFAULT);
     // file = get_or_create_table();
     dataset = H5Dopen2(file, DATASETNAME, H5P_DEFAULT);
@@ -48,8 +46,11 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
 
     /* Select the hyperslab in the dataspace */
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, start, NULL, count, NULL);
-
+    printf("Calculated: %u\n", calculated_hop_count);
     status = H5Dread(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
+
+    printf("Calculated: %u\n", calculated_hop_count);
+
     printf("[%d,%d] = %u -> %u\n", row, col, data, calculated_hop_count);
 
     // next line only for testing

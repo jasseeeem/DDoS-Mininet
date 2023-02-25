@@ -112,7 +112,7 @@ int main()
 
     hid_t file;
 
-    printf("Starting HCF...\n");
+    printf("Starting HCF...\n\n");
     get_or_create_table();
 
     sock_raw = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_IPV6));

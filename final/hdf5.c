@@ -16,7 +16,7 @@
 uint8_t hlim_to_hop_count(int hlim)
 {
     if (hlim > 255 || hlim < 0)
-        return -1;
+        return INITIAL_HOP_COUNT;
     else if (hlim <= 64)
         return 64 - hlim;
     else if (hlim <= 128)
@@ -30,9 +30,8 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
     hid_t file, dataset, dataspace, memspace;
     hsize_t start[2], count[2];
     herr_t status;
-
-    uint8_t calculated_hop_count = hlim_to_hop_count(hlim);
-    uint8_t data;
+    printf("Hlim: %d\n", hlim);
+    uint8_t data, calculated_hop_count = hlim_to_hop_count(hlim);
 
     file = H5Fopen(FILE, H5F_ACC_RDWR, H5P_DEFAULT);
     // file = get_or_create_table();
@@ -51,7 +50,7 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, start, NULL, count, NULL);
 
     status = H5Dread(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
-    printf("[%d,%d] = %d -> %d\n", row, col, data, calculated_hop_count);
+    printf("[%d,%d] = %u -> %u\n", row, col, data, calculated_hop_count);
 
     // next line only for testing
     // data = calculated_hop_count;
@@ -65,7 +64,11 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
     }
     else if (abs(data - calculated_hop_count) <= ALLOWED_HOP_COUNT_DIFFERENCE)
     {
-        status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
+        if (data != calculated_hop_count)
+        {
+            data = calculated_hop_count;
+            status = H5Dwrite(dataset, H5T_NATIVE_INT, memspace, dataspace, H5P_DEFAULT, &data);
+        }
         printf("✅ Hop Count within the allowed limit\n");
     }
     // else if (data == INTERMEDIATE_VALUE)

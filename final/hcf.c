@@ -48,6 +48,15 @@ int is_ip_routable(char src_ip[])
     if(starts_with(src_ip,"3ffe"))
         return 0;
     else
+    if(starts_with(src_ip,"ff00"))
+        return 0;
+    else
+    if(strcmp(src_ip,"0000:0000:0000:0000:0000:0000:0000:0000") == 0)
+        return 0;
+    else
+    if(strcmp(src_ip,"0000:0000:0000:0000:0000:0000:0000:0001") == 0)
+        return 0;
+    else
         return 1;
 
 }

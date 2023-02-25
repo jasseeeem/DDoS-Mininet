@@ -9,15 +9,15 @@
 #define NY 4096
 #define RANK 2
 #define ALLOWED_HOP_COUNT_DIFFERENCE 2
-#define INITIAL_HOP_COUNT -1
+#define INITIAL_HOP_COUNT 255
 
-int check_hop_count(char src_ip[], int row, int col, int calculated_hop_count)
+int check_hop_count(char src_ip[], int row, int col, uint8_t calculated_hop_count)
 {
     hid_t file, dataset, dataspace, memspace;
     hsize_t start[2], count[2];
     herr_t status;
 
-    int data;
+    uint8_t data;
 
     file = H5Fopen(FILE, H5F_ACC_RDWR, H5P_DEFAULT);
     // file = get_or_create_table();
@@ -82,9 +82,9 @@ void get_or_create_table()
         {
             file = H5Fcreate(FILE, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
-            int *data; /* data to write */
-            data = (int *)malloc(16777216 * sizeof(int));
-            memset(data, INITIAL_HOP_COUNT, NX * NY * sizeof(int));
+            uint8_t *data; /* data to write */
+            data = (uint8_t *)malloc(16777216 * sizeof(uint8_t));
+            memset(data, INITIAL_HOP_COUNT, NX * NY * sizeof(uint8_t));
 
             dimsf[0] = NX;
             dimsf[1] = NY;

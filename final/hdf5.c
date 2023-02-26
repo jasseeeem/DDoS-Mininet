@@ -15,7 +15,7 @@
 
 uint8_t hlim_to_hop_count(int hlim)
 {
-    if (hlim > 255 || hlim < 0)
+    if (hlim > 255 || hlim <= 0)
         return INITIAL_HOP_COUNT;
     else if (hlim <= 64)
         return 64 - hlim;

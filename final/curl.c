@@ -11,7 +11,12 @@
 
 int hlim = -1;
 
-// void process_curl_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
+size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+    // This function is called by libcurl when it receives data
+    // Here, you can process the data however you like
+    return size * nmemb;
+}
 
 void process_curl_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 {
@@ -47,7 +52,7 @@ int curl_to_hlim(char src_ip[])
         curl_easy_setopt(curl, CURLOPT_URL, ip_address);
 
         // Set the callback function for writing response data
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fwrite);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
 
         // Set the response data to be written to stdout
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, stdout);

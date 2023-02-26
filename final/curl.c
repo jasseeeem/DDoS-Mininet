@@ -9,7 +9,7 @@
 #define MAX_PACKETS 1
 #define INTERFACE "enp0s3"
 
-int hlim = -1;
+int hlim;
 
 size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {

@@ -25,7 +25,7 @@ uint32_t murmur_hash(const char *key, size_t len, uint32_t seed)
         h = (h << MURMUR_R2) | (h >> (32 - MURMUR_R2));
         h = h * MURMUR_M + MURMUR_N;
     }
-    const uint8_t *tail = (const uint8_t *)(key + nblocks * 4);
+    const int *tail = (const int *)(key + nblocks * 4);
     uint32_t k1 = 0;
     switch (len & 3)
     {

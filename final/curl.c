@@ -13,8 +13,6 @@ int hlim;
 
 size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
-    // This function is called by libcurl when it receives data
-    // Here, you can process the data however you like
     return size * nmemb;
 }
 

@@ -17,3 +17,6 @@ sh ovs-ofctl add-flow s2 priority=8000,ip,nw_dst=10.0.0.5,actions=output:1
 # For forwarding from s3 to h9
 sh ovs-ofctl add-flow s3 priority=8000,ip,nw_dst=10.0.0.9,actions=output:1
 sh ovs-ofctl add-flow s3 priority=8000,ip,nw_dst=10.0.0.5,actions=output:2
+
+sh ovs-ofctl add-flow s3 priority=65535,actions=output:controller
+sh ovs-ofctl add-flow s2 priority=0,actions=CONTROLLER:65535

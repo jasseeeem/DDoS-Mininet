@@ -11,6 +11,7 @@ import requests
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import ether_types
+from scapy.all import *
 
 
 class PacketRateMonitor(app_manager.RyuApp):
@@ -73,6 +74,10 @@ class PacketRateMonitor(app_manager.RyuApp):
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocols(ethernet.ethernet)[0]
 
+        # if pkt.haslayer(IP):
+        #     src_ip = pkt[IP].src
+        #     dst_ip = pkt[IP].dst
+
         if eth.ethertype == ether_types.ETH_TYPE_LLDP:
             # ignore lldp packet
             return
@@ -83,6 +88,7 @@ class PacketRateMonitor(app_manager.RyuApp):
         self.mac_to_port.setdefault(dpid, {})
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
+        # self.logger.info("packet in %s %s %s %s %s %s", dpid, src, dst, src_ip, dst_ip, in_port)
 
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src] = in_port
@@ -132,7 +138,7 @@ class PacketRateMonitor(app_manager.RyuApp):
         match = parser.OFPMatch()
 
         # Enable aggregate statistics
-        req = parser.OFPAggregateStatsRequest(datapath, 0, ofproto.OFPTT_ALL, cookie=0, cookie_mask=0, match=match, table_id=ofproto.OFPTT_ALL, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
+        req = parser.OFPAggregateStatsRequest(datapath, 0, cookie=0, cookie_mask=0, match=match, table_id=ofproto.OFPTT_ALL, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
         datapath.send_msg(req)
 
     @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)

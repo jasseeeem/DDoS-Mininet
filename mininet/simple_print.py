@@ -2,16 +2,15 @@ from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from ryu.controller.handler import set_ev_cls
-from ryu.lib.packet import ethernet
-from ryu.ofproto import ofproto_v1_3, ether
+from ryu.ofproto import ofproto_v1_3
 from ryu.app.wsgi import ControllerBase, WSGIApplication, route, Response
 import json
 import requests
-from ryu.lib.packet import packet, ethernet, ether_types
+from ryu.lib.packet import ether_types
 from scapy.all import *
 from scapy.layers.l2 import Ether
-from scapy.layers.inet6 import IPv6
-from scapy.layers.inet import IP
+import ryu.lib.hub as hub
+from ryu.topology import api as topo_api
 
 
 class PacketRateMonitor(app_manager.RyuApp):
@@ -22,25 +21,26 @@ class PacketRateMonitor(app_manager.RyuApp):
         super(PacketRateMonitor, self).__init__(*args, **kwargs)
         wsgi = kwargs['wsgi']
         wsgi.register(PacketRateMonitorController)
-        self.mac_to_port = {}
+        self.mac_to_port = {} 
 
-    # @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
-    # def switch_features_handler(self, ev):
-    #     datapath = ev.msg.datapath
-    #     ofproto = datapath.ofproto
-    #     parser = datapath.ofproto_parser
+        # Start the periodic stats request timer
+        self.monitor_thread = hub.spawn(self._monitor)
 
-    #     # install table-miss flow entry
-    #     #
-    #     # We specify NO BUFFER to max_len of the output action due to
-    #     # OVS bug. At this moment, if we specify a lesser number, e.g.,
-    #     # 128, OVS will send Packet-In with invalid buffer_id and
-    #     # truncated packet data. In that case, we cannot output packets
-    #     # correctly.  The bug has been fixed in OVS v2.1.0.
-    #     match = parser.OFPMatch()
-    #     actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
-    #                                       ofproto.OFPCML_NO_BUFFER)]
-    #     self.add_flow(datapath, 0, match, actions)
+    def _monitor(self):
+        while True:
+            switches = topo_api.get_switch(self, None)
+            for switch in switches:
+                self._request_port_stats(switch.dp)
+            hub.sleep(5) # Request port stats every 5 seconds
+
+    def _request_port_stats(self, datapath):
+        parser = datapath.ofproto_parser
+        print(f"🟡\tRequesting Stats from Switch {datapath.id}")
+        # Iterate through all ports and send a port stats request message for each port
+        for port in datapath.ports.keys():
+            print(f"\tRequesting from port {port}")
+            req = parser.OFPPortStatsRequest(datapath, 0, port)
+            datapath.send_msg(req)
 
     def add_flow(self, datapath, priority, match, actions, buffer_id=None):
         ofproto = datapath.ofproto
@@ -58,7 +58,7 @@ class PacketRateMonitor(app_manager.RyuApp):
         datapath.send_msg(mod)
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
-    def _packet_in_handler(self, ev):
+    def _packet_in_handler(self, ev):        
         # If you hit this you might want to increase
         # the "miss_send_length" of your switch
         if ev.msg.msg_len < ev.msg.total_len:
@@ -136,13 +136,14 @@ class PacketRateMonitor(app_manager.RyuApp):
 
         # Enable aggregate statistics to retrieve statistics about the entire switch, such as the number of packets and bytes processed by the switch
         req = parser.OFPAggregateStatsRequest(datapath, 0, cookie=0, cookie_mask=0, match=match, table_id=ofproto.OFPTT_ALL, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
+        
+        self.switches[datapath.id] = datapath
+
         datapath.send_msg(req)
 
     @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
     def port_stats_reply_handler(self, ev):
         datapath = ev.msg.datapath
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
         # get the body of the port statistics reply message
         stats = ev.msg.body
 
@@ -184,7 +185,7 @@ class PacketRateMonitorController(ControllerBase):
     @route('packet_rate_monitor', '/packet_rate', methods=['POST'])
     def packet_rate(self, req, **kwargs):
         data = req.json
-        print(PacketRateMonitorController.packet_rate_data)
+        # print(PacketRateMonitorController.packet_rate_data)
         if data['switch_id'] in PacketRateMonitorController.packet_rate_data.keys():
             PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']] = data['packet_rate']
         else:

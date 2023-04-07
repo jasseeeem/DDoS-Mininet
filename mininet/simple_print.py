@@ -152,14 +152,13 @@ class PacketRateMonitor(app_manager.RyuApp):
             port_no = stat.port_no
             # number of received packets
             rx_packets = stat.rx_packets
-            # number of transmitted packets
-            tx_packets = stat.tx_packets
+            # number of transmitted packets - not considering the packets leaving the switch
+            # tx_packets = stat.tx_packets
             duration_sec = stat.duration_sec
             duration_nsec = stat.duration_nsec
-            packet_rate = (rx_packets + tx_packets) / (duration_sec + duration_nsec / 1e9)
 
             # Store packet rate data in a dictionary
-            data = { 'switch_id': datapath.id, 'port_no': port_no, 'packet_rate': packet_rate }
+            data = { 'switch_id': datapath.id, 'port_no': port_no, 'num_packets': rx_packets, 'time': duration_sec + duration_nsec / 1e9}
             self.send_packet_rate_data(data)
 
     def send_packet_rate_data(self, data):
@@ -179,17 +178,24 @@ class PacketRateMonitorController(ControllerBase):
     # The attributes of the previous instances are not preserved since they are specific to that instance and will be destroyed when the instance is no longer needed.
     def __init__(self, req, link, data, **config):
         super(PacketRateMonitorController, self).__init__(req, link, data, **config)
-        # self.packet_rate_data = data 
+        # self.packet_rate = data 
 
     # update the packet rate of a switch
     @route('packet_rate_monitor', '/packet_rate', methods=['POST'])
     def packet_rate(self, req, **kwargs):
         data = req.json
-        # print(PacketRateMonitorController.packet_rate_data)
         if data['switch_id'] in PacketRateMonitorController.packet_rate_data.keys():
-            PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']] = data['packet_rate']
+            packet_diff = 0
+            time_diff = 0
+            if data['port_no'] in PacketRateMonitorController.packet_rate_data[data['switch_id']].keys() :
+                packet_diff = data['num_packets'] - PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']]['prev_num_packets']
+                time_diff = data['time'] - PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']]['prev_time']                                                                                                           
+            else:
+                packet_diff = data['num_packets']
+                time_diff = data['time']
+            PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']] = {'curr_packet_rate': packet_diff / time_diff, 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}
         else:
-            PacketRateMonitorController.packet_rate_data[data['switch_id']] = {data['port_no']: data['packet_rate']}
+            PacketRateMonitorController.packet_rate_data[data['switch_id']] = {data['port_no']: {'curr_packet_rate': data['num_packets'] / data['time'], 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}}
         return Response(status=200)
 
     # get the packet rates of all switches

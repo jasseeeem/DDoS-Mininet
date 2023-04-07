@@ -1,3 +1,4 @@
+from math import log2
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
@@ -21,7 +22,8 @@ class PacketRateMonitor(app_manager.RyuApp):
         super(PacketRateMonitor, self).__init__(*args, **kwargs)
         wsgi = kwargs['wsgi']
         wsgi.register(PacketRateMonitorController)
-        self.mac_to_port = {} 
+        self.mac_to_port = {}
+        self.packet_count = {}
 
         # Start the periodic stats request timer
         self.monitor_thread = hub.spawn(self._monitor)
@@ -81,6 +83,10 @@ class PacketRateMonitor(app_manager.RyuApp):
 
         dpid = format(datapath.id, "d").zfill(16)
         self.mac_to_port.setdefault(dpid, {})
+
+        # used to calculate the entropy
+        key = '-'.join([str(dpid), str(in_port), src_mac, dst_mac])
+        self.packet_count[key] = self.packet_count.get(key, 0) + 1
 
         # self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
         self.logger.info("packet in %s %s %s %s", dpid, src_mac, dst_mac, in_port)
@@ -156,10 +162,13 @@ class PacketRateMonitor(app_manager.RyuApp):
             # tx_packets = stat.tx_packets
             duration_sec = stat.duration_sec
             duration_nsec = stat.duration_nsec
-
+            
             # Store packet rate data in a dictionary
             data = { 'switch_id': datapath.id, 'port_no': port_no, 'num_packets': rx_packets, 'time': duration_sec + duration_nsec / 1e9}
             self.send_packet_rate_data(data)
+
+        self.send_entropy_data(self.packet_count)
+
 
     def send_packet_rate_data(self, data):
         # Send the packet rate data to the Ryu REST API server
@@ -168,10 +177,19 @@ class PacketRateMonitor(app_manager.RyuApp):
         if response.status_code != 200:
             self.logger.error('Failed to send packet rate data')
 
+
+    # Send the entropy data to the RYU REST API server
+    def send_entropy_data(self, data):
+        url = 'http://127.0.0.1:8080/entropy'
+        response = requests.post(url, json=data)
+        if response.status_code != 200:
+            self.logger.error('Failed to send entropy data')
+
 # REST API controller class
 class PacketRateMonitorController(ControllerBase):
     # store as class attribute so that it is not reset after every API call (which is what happens if put inside __init__)
     packet_rate_data = {}
+    entropy_data = {}
 
     # When a new HTTP request is received, the web framework instantiates a new instance of the controller class to handle the request. 
     # The __init__ method is called during the instantiation process to initialize the attributes of the new instance. 
@@ -197,6 +215,31 @@ class PacketRateMonitorController(ControllerBase):
         else:
             PacketRateMonitorController.packet_rate_data[data['switch_id']] = {data['port_no']: {'curr_packet_rate': data['num_packets'] / data['time'], 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}}
         return Response(status=200)
+    
+
+
+    # update the entropy of a switch
+    @route('entropy_monitor', '/entropy', methods=['POST'])
+    def post_entropy(self, req, **kwargs):
+        data = req.json
+        total_packets = sum(data.values())
+        interface_entropy = {}
+        
+        for key in data:
+            [datapath_id, in_port, src, dst] = key.split("-")
+            probability = data[key] / total_packets
+            interface_entropy['-'.join([datapath_id, in_port])] = interface_entropy.get('-'.join([datapath_id, in_port]), 0) - probability * log2(probability)
+
+        for key in interface_entropy:
+            [datapath_id, in_port] = key.split("-")
+            PacketRateMonitorController.entropy_data[key] = interface_entropy[key]
+
+
+    # get the entropies of all the switches
+    @route('entropy_monitor', '/entropy', methods=['GET'])
+    def get_entropy(self, req, **kwargs):
+        return json.dumps(PacketRateMonitorController.entropy_data)
+
 
     # get the packet rates of all switches
     @route('packet_rate_monitor', '/packet_rate', methods=['GET'])

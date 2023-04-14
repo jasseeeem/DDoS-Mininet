@@ -1,3 +1,4 @@
+from math import log2
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
@@ -21,7 +22,9 @@ class PacketRateMonitor(app_manager.RyuApp):
         super(PacketRateMonitor, self).__init__(*args, **kwargs)
         wsgi = kwargs['wsgi']
         wsgi.register(PacketRateMonitorController)
-        self.mac_to_port = {} 
+        self.mac_to_port = {}
+        self.packet_count = {}
+        self.flow_count = {}    #Will this be blank every time we request for a switch?
 
         # Start the periodic stats request timer
         self.monitor_thread = hub.spawn(self._monitor)
@@ -35,12 +38,20 @@ class PacketRateMonitor(app_manager.RyuApp):
 
     def _request_port_stats(self, datapath):
         parser = datapath.ofproto_parser
+        ofproto = datapath.ofproto
         print(f"🟡\tRequesting Stats from Switch {datapath.id}")
-        # Iterate through all ports and send a port stats request message for each port
-        for port in datapath.ports.keys():
-            print(f"\tRequesting from port {port}")
-            req = parser.OFPPortStatsRequest(datapath, 0, port)
-            datapath.send_msg(req)
+
+        # Send flow stats request for the switch
+        req = parser.OFPFlowStatsRequest(datapath)
+        datapath.send_msg(req)
+    
+        # send port stats request for the switch
+        for port in datapath.ports.values():
+            if port.port_no != 4294967293:
+                print(f"\tRequesting from port {port.port_no}")
+
+                req = parser.OFPPortStatsRequest(datapath, 0, port.port_no)
+                datapath.send_msg(req)
 
     def add_flow(self, datapath, priority, match, actions, buffer_id=None):
         ofproto = datapath.ofproto
@@ -82,8 +93,12 @@ class PacketRateMonitor(app_manager.RyuApp):
         dpid = format(datapath.id, "d").zfill(16)
         self.mac_to_port.setdefault(dpid, {})
 
+        # used to calculate the entropy
+        key = '-'.join([str(dpid), str(in_port), src_mac, dst_mac])
+        self.packet_count[key] = self.packet_count.get(key, 0) + 1
+
         # self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
-        self.logger.info("packet in %s %s %s %s", dpid, src_mac, dst_mac, in_port)
+        # self.logger.info("packet in %s %s %s %s", dpid, src_mac, dst_mac, in_port)
 
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src_mac] = in_port
@@ -122,6 +137,7 @@ class PacketRateMonitor(app_manager.RyuApp):
 
         # match all packets
         match = parser.OFPMatch()
+        #match.set_in_port(ofproto.OFPP_ANY)
         # send them to the controller
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
@@ -131,13 +147,25 @@ class PacketRateMonitor(app_manager.RyuApp):
         req = parser.OFPPortStatsRequest(datapath, 0, ofproto.OFPP_ANY)
         datapath.send_msg(req)
 
+        req = parser.OFPFlowStatsRequest(datapath, 0, ofproto.OFPTT_ALL, ofproto.OFPP_ANY, ofproto.OFPMPF_REQ_MORE)
+        datapath.send_msg(req)
+
+        # Enable flow statistics for the switch
+        #req = parser.OFPFlowStatsRequest(datapath, 0, ofproto.OFPF_ANY)
+        req = parser.OFPFlowStatsRequest(datapath, 0, ofproto.OFPTT_ALL,
+                                 ofproto.OFPP_ANY, ofproto.OFPG_ANY,
+                                 0, 0, parser.OFPMatch())
+
+        datapath.send_msg(req)
+
+
         # Create an OFPMatch object with no match criteria
         match = parser.OFPMatch()
 
         # Enable aggregate statistics to retrieve statistics about the entire switch, such as the number of packets and bytes processed by the switch
         req = parser.OFPAggregateStatsRequest(datapath, 0, cookie=0, cookie_mask=0, match=match, table_id=ofproto.OFPTT_ALL, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
         
-        self.switches[datapath.id] = datapath
+        #self.switches[datapath.id] = datapath
 
         datapath.send_msg(req)
 
@@ -156,10 +184,12 @@ class PacketRateMonitor(app_manager.RyuApp):
             # tx_packets = stat.tx_packets
             duration_sec = stat.duration_sec
             duration_nsec = stat.duration_nsec
-
+            
             # Store packet rate data in a dictionary
-            data = { 'switch_id': datapath.id, 'port_no': port_no, 'num_packets': rx_packets, 'time': duration_sec + duration_nsec / 1e9}
-            self.send_packet_rate_data(data)
+            packet_rate_data = { 'switch_id': datapath.id, 'port_no': port_no, 'num_packets': rx_packets, 'time': duration_sec + duration_nsec / 1e9}
+            self.send_packet_rate_data(packet_rate_data)
+
+        self.send_entropy_data(self.packet_count)
 
     def send_packet_rate_data(self, data):
         # Send the packet rate data to the Ryu REST API server
@@ -168,17 +198,58 @@ class PacketRateMonitor(app_manager.RyuApp):
         if response.status_code != 200:
             self.logger.error('Failed to send packet rate data')
 
+    # Send the entropy data to the RYU REST API server
+    def send_entropy_data(self, data):
+        url = 'http://127.0.0.1:8080/entropy'
+        response = requests.post(url, json=data)
+        if response.status_code != 200:
+            self.logger.error('Failed to send entropy data')
+
+    @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
+    def flow_stats_reply_handler(self, ev):
+        datapath = ev.msg.datapath
+        # get the body of the port statistics reply message
+        stats = ev.msg.body
+
+        if len(stats) > 0:
+            # loop over each port in the statistics
+            flow_data = {}
+            for stat in stats:
+                # check if there is a field called in_port
+                try:
+                    port_no = int(stat.match['in_port'])
+                except KeyError:
+                    port_no = None
+                if port_no:
+                    if port_no in flow_data.keys():
+                        flow_data[port_no] += 1
+                    else:
+                        flow_data[port_no] = 1
+
+            if len(flow_data) != 0:
+                self.send_flow_count_data({'switch_id': datapath.id, 'count': flow_data})
+
+    def send_flow_count_data(self, data):
+        url = 'http://127.0.0.1:8080/flow_count'
+        response = requests.post(url, json=data)
+        if response.status_code != 200:
+            self.logger.error('Failed to send flow count data')
+
+
+
 # REST API controller class
 class PacketRateMonitorController(ControllerBase):
     # store as class attribute so that it is not reset after every API call (which is what happens if put inside __init__)
     packet_rate_data = {}
+    entropy_data = {}
+    flow_count_data = {}
 
     # When a new HTTP request is received, the web framework instantiates a new instance of the controller class to handle the request. 
     # The __init__ method is called during the instantiation process to initialize the attributes of the new instance. 
     # The attributes of the previous instances are not preserved since they are specific to that instance and will be destroyed when the instance is no longer needed.
     def __init__(self, req, link, data, **config):
         super(PacketRateMonitorController, self).__init__(req, link, data, **config)
-        # self.packet_rate = data 
+        self.packet_rate_data = {} 
 
     # update the packet rate of a switch
     @route('packet_rate_monitor', '/packet_rate', methods=['POST'])
@@ -201,4 +272,55 @@ class PacketRateMonitorController(ControllerBase):
     # get the packet rates of all switches
     @route('packet_rate_monitor', '/packet_rate', methods=['GET'])
     def get_packet_rate(self, req, **kwargs):
-        return json.dumps(PacketRateMonitorController.packet_rate_data)
+        return json.dumps(PacketRateMonitorController.packet_rate_data)    
+
+    # update the entropy of a switch
+    @route('entropy_monitor', '/entropy', methods=['POST'])
+    def post_entropy(self, req, **kwargs):
+        data = req.json
+        total_packets = sum(data.values())
+        interface_entropy = {}
+        
+        for key in data:
+            [datapath_id, in_port, src, dst] = key.split("-")
+            probability = data[key] / total_packets
+            interface_entropy['-'.join([datapath_id, in_port])] = interface_entropy.get('-'.join([datapath_id, in_port]), 0) - probability * log2(probability)
+            #interface_entropy[datapath_id] = {in_port: interface_entropy[datapath_id].get(in_port, 0) - probability * log2(probability)}
+        for key in interface_entropy:
+            [datapath_id, in_port] = key.split("-")
+            if datapath_id in PacketRateMonitorController.entropy_data:
+                PacketRateMonitorController.entropy_data[datapath_id][in_port] = interface_entropy[key]
+            else:
+                PacketRateMonitorController.entropy_data[datapath_id] = {in_port:interface_entropy[key]}
+        return Response(status=200)
+
+    # get the entropies of all the switches
+    @route('entropy_monitor', '/entropy', methods=['GET'])
+    def get_entropy(self, req, **kwargs):
+        return json.dumps(PacketRateMonitorController.entropy_data)
+
+    # update the entropy of a switch
+    @route('flow_count_monitor', '/flow_count', methods=['POST'])
+    def post_flow_count(self, req, **kwargs):
+        data = req.json
+        print(data)
+        # PacketRateMonitorController.flow_count_data[data['switch_id']] = data['count']
+        if data['switch_id'] in PacketRateMonitorController.flow_count_data.keys():
+            for port in data['count'].keys():
+                port_int = int(port)
+                if port_int in PacketRateMonitorController.flow_count_data[data['switch_id']].keys():
+                    PacketRateMonitorController.flow_count_data[data['switch_id']][port_int].append(data['count'][port]) 
+                else:
+                    PacketRateMonitorController.flow_count_data[data['switch_id']][port_int] = [data['count'][port]]
+        else:
+            PacketRateMonitorController.flow_count_data[data['switch_id']] = {int(k): [v] for k, v in data['count'].items()}
+
+        print(PacketRateMonitorController.flow_count_data)
+        return Response(status=200)
+        
+
+
+    # get the flow rates of all the switches
+    @route('flow_count_monitor', '/flow_count', methods=['GET'])
+    def get_flow_count(self, req, **kwargs):
+        return json.dumps(PacketRateMonitorController.flow_count_data)

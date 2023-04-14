@@ -15,12 +15,14 @@ class MyTopo( Topo ):
         # Add hosts and switches
         h1 = self.addHost( 'h1' )
         h2 = self.addHost( 'h2' )
+        h3 = self.addHost( 'h3' )
         s1 = self.addSwitch( 's1' )
         s2 = self.addSwitch( 's2' )
 
         # Add links
         self.addLink( h1, s1 )
         self.addLink( h2, s2 )
+        self.addLink( h3, s2)
         self.addLink( s1, s2 )
 
     def addFlows(self, net):
@@ -33,10 +35,10 @@ class MyTopo( Topo ):
         flow2 = {'nw_dst': '10.0.0.1', 'actions': 'output:1'}
         flow3 = {'nw_dst': '10.0.0.1', 'actions': 'output:2'}
         flow4 = {'nw_dst': '10.0.0.2', 'actions': 'output:1'}
-        s1.cmd('ovs-ofctl add-flow -O OpenFlow13 %s "ip,%s"' % ('s1', ','.join(['%s=%s' % (k, v) for k, v in flow1.items()])))
-        s1.cmd('ovs-ofctl add-flow -O OpenFlow13 %s "ip,%s"' % ('s1', ','.join(['%s=%s' % (k, v) for k, v in flow2.items()])))
-        s2.cmd('ovs-ofctl add-flow -O OpenFlow13 %s "ip,%s"' % ('s2', ','.join(['%s=%s' % (k, v) for k, v in flow3.items()])))
-        s2.cmd('ovs-ofctl add-flow -O OpenFlow13 %s "ip,%s"' % ('s2', ','.join(['%s=%s' % (k, v) for k, v in flow4.items()])))
+        # s1.cmd('ovs-ofctl add-flow -O OpenFlow13 %s "ip,%s"' % ('s1', ','.join(['%s=%s' % (k, v) for k, v in flow1.items()])))
+        # s1.cmd('ovs-ofctl add-flow -O OpenFlow13 %s "ip,%s"' % ('s1', ','.join(['%s=%s' % (k, v) for k, v in flow2.items()])))
+        # s2.cmd('ovs-ofctl add-flow -O OpenFlow13 %s "ip,%s"' % ('s2', ','.join(['%s=%s' % (k, v) for k, v in flow3.items()])))
+        # s2.cmd('ovs-ofctl add-flow -O OpenFlow13 %s "ip,%s"' % ('s2', ','.join(['%s=%s' % (k, v) for k, v in flow4.items()])))
 
 TOPOS = {'MyTopo' : (lambda : MyTopo())}
 
@@ -44,7 +46,7 @@ def main():
     topo = MyTopo()
     net = Mininet(topo,link=TCLink)
     net.start()
-    topo.addFlows(net)
+    # topo.addFlows(net)
     CLI(net)
     net.stop()
 

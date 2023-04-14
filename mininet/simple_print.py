@@ -13,6 +13,7 @@ from scapy.layers.l2 import Ether
 import ryu.lib.hub as hub
 from ryu.topology import api as topo_api
 
+MAX_DATAPOINTS = 5
 
 class PacketRateMonitor(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -236,7 +237,6 @@ class PacketRateMonitor(app_manager.RyuApp):
             self.logger.error('Failed to send flow count data')
 
 
-
 # REST API controller class
 class PacketRateMonitorController(ControllerBase):
     # store as class attribute so that it is not reset after every API call (which is what happens if put inside __init__)
@@ -264,9 +264,10 @@ class PacketRateMonitorController(ControllerBase):
             else:
                 packet_diff = data['num_packets']
                 time_diff = data['time']
-            PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']] = {'curr_packet_rate': packet_diff / time_diff, 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}
+                # change the code to combine two lists and memory issue
+            PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']] = {'packet_rate': PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']]['packet_rate'][-MAX_DATAPOINTS + 1 :] + [packet_diff / time_diff], 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}
         else:
-            PacketRateMonitorController.packet_rate_data[data['switch_id']] = {data['port_no']: {'curr_packet_rate': data['num_packets'] / data['time'], 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}}
+            PacketRateMonitorController.packet_rate_data[data['switch_id']] = {data['port_no']: {'packet_rate': [data['num_packets'] / data['time']], 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}}
         return Response(status=200)
 
     # get the packet rates of all switches
@@ -299,26 +300,20 @@ class PacketRateMonitorController(ControllerBase):
     def get_entropy(self, req, **kwargs):
         return json.dumps(PacketRateMonitorController.entropy_data)
 
-    # update the entropy of a switch
+    # update the flow counts of a switch
     @route('flow_count_monitor', '/flow_count', methods=['POST'])
     def post_flow_count(self, req, **kwargs):
         data = req.json
-        print(data)
-        # PacketRateMonitorController.flow_count_data[data['switch_id']] = data['count']
         if data['switch_id'] in PacketRateMonitorController.flow_count_data.keys():
             for port in data['count'].keys():
                 port_int = int(port)
                 if port_int in PacketRateMonitorController.flow_count_data[data['switch_id']].keys():
-                    PacketRateMonitorController.flow_count_data[data['switch_id']][port_int].append(data['count'][port]) 
+                    PacketRateMonitorController.flow_count_data[data['switch_id']][port_int] = PacketRateMonitorController.flow_count_data[data['switch_id']][port_int][-MAX_DATAPOINTS + 1:] + [data['count'][port]]
                 else:
                     PacketRateMonitorController.flow_count_data[data['switch_id']][port_int] = [data['count'][port]]
         else:
             PacketRateMonitorController.flow_count_data[data['switch_id']] = {int(k): [v] for k, v in data['count'].items()}
-
-        print(PacketRateMonitorController.flow_count_data)
         return Response(status=200)
-        
-
 
     # get the flow rates of all the switches
     @route('flow_count_monitor', '/flow_count', methods=['GET'])

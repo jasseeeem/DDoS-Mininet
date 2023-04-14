@@ -264,11 +264,9 @@ class PacketRateMonitorController(ControllerBase):
             else:
                 packet_diff = data['num_packets']
                 time_diff = data['time']
-            try:
+            prev_packet_rate = []
+            if data['port_no'] in PacketRateMonitorController.packet_rate_data[data['switch_id']].keys():
                 prev_packet_rate = PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']]['packet_rate']
-            except:
-                prev_packet_rate = []
-
             PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']] = {'packet_rate': prev_packet_rate[-MAX_DATAPOINTS + 1 :] + [packet_diff / time_diff], 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}
         else:
             PacketRateMonitorController.packet_rate_data[data['switch_id']] = {data['port_no']: {'packet_rate': [data['num_packets'] / data['time']], 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}}

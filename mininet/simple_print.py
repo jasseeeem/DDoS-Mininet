@@ -310,6 +310,8 @@ class PacketRateMonitorController(ControllerBase):
                 port_int = int(port)
                 if port_int in PacketRateMonitorController.flow_count_data[data['switch_id']].keys():
                     PacketRateMonitorController.flow_count_data[data['switch_id']][port_int].append(data['count'][port]) 
+                else:
+                    PacketRateMonitorController.flow_count_data[data['switch_id']][port_int] = [data['count'][port]]
         else:
             PacketRateMonitorController.flow_count_data[data['switch_id']] = {int(k): [v] for k, v in data['count'].items()}
 

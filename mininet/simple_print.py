@@ -12,8 +12,10 @@ from scapy.all import *
 from scapy.layers.l2 import Ether
 import ryu.lib.hub as hub
 from ryu.topology import api as topo_api
+import numpy as np
 
 MAX_DATAPOINTS = 5
+SD_STEPS=1
 
 class PacketRateMonitor(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -35,7 +37,33 @@ class PacketRateMonitor(app_manager.RyuApp):
             switches = topo_api.get_switch(self, None)
             for switch in switches:
                 self._request_port_stats(switch.dp)
+                self._calc_sd_flow_count(switch.dp)
             hub.sleep(5) # Request port stats every 5 seconds
+
+    def _calc_sd_flow_count(self, datapath):
+        url = 'http://127.0.0.1:8080/packet_rate'
+        response = requests.get(url)
+        if response.status_code == 200:
+            packet_rate_data = response.json()
+            #print(packet_rate_data)  # print the packet rate data
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+        
+        for switch_id, switch_data in packet_rate_data.items():
+            print(f"Switch {switch_id}:")
+            for port_no, port_data in switch_data.items():
+                #packet_rates = port_data['packet_rate']
+                sd=np.std(port_data)
+                mean=sum(port_data)/len(port_data)
+                if( abs( ((port_data[-1]-mean)/sd) > SD_STEPS)):
+                    print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                else:
+                    print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
+
+
+        return
+
 
     def _request_port_stats(self, datapath):
         parser = datapath.ofproto_parser
@@ -275,7 +303,12 @@ class PacketRateMonitorController(ControllerBase):
     # get the packet rates of all switches
     @route('packet_rate_monitor', '/packet_rate', methods=['GET'])
     def get_packet_rate(self, req, **kwargs):
-        return json.dumps(PacketRateMonitorController.packet_rate_data)    
+        packet_rates = {}
+        for switch_id, switch_data in PacketRateMonitorController.packet_rate_data.items():
+            packet_rates[switch_id] = {}
+            for port_no, port_data in switch_data.items():
+                packet_rates[switch_id][port_no] = port_data['packet_rate']
+        return json.dumps(packet_rates) 
 
     # update the entropy of a switch
     @route('entropy_monitor', '/entropy', methods=['POST'])
@@ -311,6 +344,7 @@ class PacketRateMonitorController(ControllerBase):
                 port_int = int(port)
                 if port_int in PacketRateMonitorController.flow_count_data[data['switch_id']].keys():
                     PacketRateMonitorController.flow_count_data[data['switch_id']][port_int] = PacketRateMonitorController.flow_count_data[data['switch_id']][port_int][-MAX_DATAPOINTS + 1:] + [data['count'][port]]
+
                 else:
                     PacketRateMonitorController.flow_count_data[data['switch_id']][port_int] = [data['count'][port]]
         else:

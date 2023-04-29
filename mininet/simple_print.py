@@ -15,7 +15,10 @@ from ryu.topology import api as topo_api
 import numpy as np
 
 MAX_DATAPOINTS = 5
-SD_STEPS=1
+FLOW_SD_STEPS=1
+PACKET_RATE_SD_STEPS=1
+ENTROPY_STEPS=1
+
 
 class PacketRateMonitor(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -38,9 +41,10 @@ class PacketRateMonitor(app_manager.RyuApp):
             for switch in switches:
                 self._request_port_stats(switch.dp)
                 self._calc_sd_flow_count(switch.dp)
+                self._calc_sd_packet_rate(switch.dp)
             hub.sleep(5) # Request port stats every 5 seconds
 
-    def _calc_sd_flow_count(self, datapath):
+    def _calc_sd_packet_rate(self, datapath):
         url = 'http://127.0.0.1:8080/packet_rate'
         response = requests.get(url)
         if response.status_code == 200:
@@ -55,13 +59,33 @@ class PacketRateMonitor(app_manager.RyuApp):
                 #packet_rates = port_data['packet_rate']
                 sd=np.std(port_data)
                 mean=sum(port_data)/len(port_data)
-                if( abs( ((port_data[-1]-mean)/sd) > SD_STEPS)):
+                if( abs( ((port_data[-1]-mean)/sd) > PACKET_RATE_SD_STEPS)):
                     print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
                 else:
                     print(f"✅ Switch {switch_id} Port {port_no} is fine")
                 print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
-
-
+        return
+    
+    def _calc_sd_flow_count(self, datapath):
+        url = 'http://127.0.0.1:8080/flow_count'
+        response = requests.get(url)
+        if response.status_code == 200:
+            flow_count_data = response.json()
+            print(flow_count_data)  # print the packet rate data
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+        
+        for switch_id, switch_data in flow_count_data.items():
+            print(f"Switch {switch_id}:")
+            for port_no, port_data in switch_data.items():
+                #packet_rates = port_data['packet_rate']
+                sd=np.std(port_data)
+                mean=sum(port_data)/len(port_data)
+                if( abs( ((port_data[-1]-mean)/sd) > FLOW_SD_STEPS)):
+                    print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                else:
+                    print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
         return
 
 

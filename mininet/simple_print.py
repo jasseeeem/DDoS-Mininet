@@ -60,16 +60,16 @@ class PacketRateMonitor(app_manager.RyuApp):
             print(f"Switch {switch_id}:")
             for port_no, port_data in switch_data.items():
                 # packet_rates = port_data['packet_rate']
-                sd=np.std(port_data)
-                mean=sum(port_data)/len(port_data)
                 if(len(port_data)>=(MAX_DATAPOINTS-1)):
+                    sd=np.std(port_data[:-1])
+                    mean=sum(port_data[:-1])/(len(port_data)-1)
                     if( abs( ((port_data[-1]-mean)/sd) > PACKET_RATE_SD_STEPS)):
                         print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
                     else:
                         print(f"✅ Switch {switch_id} Port {port_no} is fine")
                 else:
                     print(f"🟡 Port does not have enough data")
-                print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
+                    print(f"  Port {port_no}")
         return
     
     def _calc_sd_flow_count(self, datapath):
@@ -86,16 +86,17 @@ class PacketRateMonitor(app_manager.RyuApp):
             print(f"Switch {switch_id}:")
             for port_no, port_data in switch_data.items():
                 #packet_rates = port_data['packet_rate']
-                sd=np.std(port_data)
-                mean=sum(port_data)/len(port_data)
+                
                 if(len(port_data)>=(MAX_DATAPOINTS-1)):
+                    sd=np.std(port_data[:-1])
+                    mean=sum(port_data[:-1])/ (len(port_data)-1)
                     if( abs( ((port_data[-1]-mean)/sd) > FLOW_SD_STEPS)):
-                        print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                        print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly || Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
                     else:
-                        print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                        print(f"✅ Switch {switch_id} Port {port_no} is fine || Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
                 else:
                     print(f"🟡 Port does not have enough data")
-                print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
+                    print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]}")
         return
     
     def _calc_sd_entropy(self, datapath):
@@ -111,16 +112,16 @@ class PacketRateMonitor(app_manager.RyuApp):
         for switch_id, switch_data in entropy_data.items():
             # print(f"Switch {switch_id}:")
             for port_no, port_data in switch_data.items():
-                sd = np.std(port_data)
-                mean = sum(port_data)/len(port_data)
                 if(len(port_data)>=MAX_DATAPOINTS-1):
+                    sd = np.std(port_data[:-1])
+                    mean = sum(port_data[:-1])/(len(port_data)-1)
                     if( abs( ((port_data[-1]-mean)/sd) > ENTROPY_STEPS)):
-                        print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                        print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly || Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
                     else:
-                        print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                        print(f"✅ Switch {switch_id} Port {port_no} is fine || Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
                 else:
                     print(f"🟡 Port does not have enough data")
-                print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
+                    print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]}")
         return
 
 

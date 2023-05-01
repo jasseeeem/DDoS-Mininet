@@ -90,6 +90,7 @@ void process_packet(unsigned char *buffer, int size)
              buffer[HLIM_BYTE_POSITION + 15],
              buffer[HLIM_BYTE_POSITION + 16]);
     printf("Source Address: %s\n", src_ip);
+    printf("IPV: %d\nProtocol: %d\n", ip_v, protocol);
 
     inet_pton(AF_INET6, src_ip, &ip_addr);
     hash = murmur_hash((const char *)&ip_addr, sizeof(ip_addr), 0);
@@ -119,7 +120,7 @@ void process_packet(unsigned char *buffer, int size)
     {
         printf("⛔ Not an IPv6 packet\n\n");
     }
-    else if (protocol != 58)
+    else if (protocol != 6)
     {
         printf("⛔ Not a TCP packet\n\n");
     }

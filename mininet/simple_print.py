@@ -15,16 +15,10 @@ from ryu.topology import api as topo_api
 import numpy as np
 
 MAX_DATAPOINTS = 5
-<<<<<<< HEAD
-FLOW_SD_STEPS=1
-PACKET_RATE_SD_STEPS=1
-ENTROPY_STEPS=1
-=======
 FLOW_SD_STEPS = 1
 PACKET_RATE_SD_STEPS = 1
 ENTROPY_STEPS = 1
 SERVER_URL = "http://127.0.0.1:8080"
->>>>>>> 17c759acd716ed9033a582216a8d5597c253cafb
 
 class PacketRateMonitor(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -65,18 +59,6 @@ class PacketRateMonitor(app_manager.RyuApp):
         for switch_id, switch_data in packet_rate_data.items():
             print(f"Switch {switch_id}:")
             for port_no, port_data in switch_data.items():
-<<<<<<< HEAD
-                #packet_rates = port_data['packet_rate']
-                sd=np.std(port_data)
-                mean=sum(port_data)/len(port_data)
-                print(f"Len: "+ str(len(port_data)))
-                if( abs( ((port_data[-1]-mean)/sd) > PACKET_RATE_SD_STEPS)):
-                    print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
-                else:
-                    print(f"✅ Switch {switch_id} Port {port_no} is fine")
-
-                print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
-=======
                 # packet_rates = port_data['packet_rate']
                 if(len(port_data)>=(MAX_DATAPOINTS-1)):
                     sd=np.std(port_data[:-1])
@@ -88,7 +70,6 @@ class PacketRateMonitor(app_manager.RyuApp):
                 else:
                     print(f"🟡 Port does not have enough data")
                     print(f"  Port {port_no}")
->>>>>>> 17c759acd716ed9033a582216a8d5597c253cafb
         return
     
     def _calc_sd_flow_count(self, datapath):
@@ -396,7 +377,10 @@ class PacketRateMonitorController(ControllerBase):
             [datapath_id, in_port] = key.split("-")
             if datapath_id in PacketRateMonitorController.entropy_data:
                 if in_port in PacketRateMonitorController.entropy_data[datapath_id]:
-                    PacketRateMonitorController.entropy_data[datapath_id][in_port] = PacketRateMonitorController.entropy_data[datapath_id][in_port][-MAX_DATAPOINTS + 1 :] + [interface_entropy[key]]
+                    if len(PacketRateMonitorController.entropy_data[datapath_id][in_port]) == MAX_DATAPOINTS:
+                        PacketRateMonitorController.entropy_data[datapath_id][in_port] = PacketRateMonitorController.entropy_data[datapath_id][in_port][-MAX_DATAPOINTS + 1 :] + [interface_entropy[key]]
+                    else:
+                        PacketRateMonitorController.entropy_data[datapath_id][in_port].append(interface_entropy[key])
                 else:
                     PacketRateMonitorController.entropy_data[datapath_id][in_port] = [interface_entropy[key]]
             else:

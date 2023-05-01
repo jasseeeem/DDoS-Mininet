@@ -11,9 +11,11 @@
 #include "murmur_hash.c"
 
 #define HLIM_BYTE_POSITION 21
+#define NEXT_HEADER_BYTE_POSITION 20
+#define IP_V_BYTE_POSITION 14
 
 // int hlim_to_hop_count(int);
-// void ProcessPacket(unsigned char *, int);
+// void process_packet(unsigned char *, int);
 
 int sock_raw;
 int i, j;
@@ -27,50 +29,46 @@ int starts_with(const char *str, const char *prefix)
 
 int is_ip_routable(char src_ip[])
 {
-    if(starts_with(src_ip, "fe80"))
+    if (starts_with(src_ip, "fe80"))
         return 0;
-    else
-    if(starts_with(src_ip, "fc00"))
+    else if (starts_with(src_ip, "fc00"))
         return 0;
-    else
-    if(starts_with(src_ip, "fd00"))
+    else if (starts_with(src_ip, "fd00"))
         return 0;
-    else
-    if(starts_with(src_ip, "2001:0db8"))
+    else if (starts_with(src_ip, "2001:0db8"))
         return 0;
-    else
-    if(starts_with(src_ip, "2001:0010"))
+    else if (starts_with(src_ip, "2001:0010"))
         return 0;
-    else
-    if(starts_with(src_ip, "2002"))
+    else if (starts_with(src_ip, "2002"))
         return 0;
-    else
-    if(starts_with(src_ip,"3ffe"))
+    else if (starts_with(src_ip, "3ffe"))
         return 0;
-    else
-    if(starts_with(src_ip,"ff00"))
+    else if (starts_with(src_ip, "ff00"))
         return 0;
-    else
-    if(strcmp(src_ip,"0000:0000:0000:0000:0000:0000:0000:0000") == 0)
+    else if (strcmp(src_ip, "0000:0000:0000:0000:0000:0000:0000:0000") == 0)
         return 0;
-    else
-    if(strcmp(src_ip,"0000:0000:0000:0000:0000:0000:0000:0001") == 0)
+    else if (strcmp(src_ip, "0000:0000:0000:0000:0000:0000:0000:0001") == 0)
         return 0;
     else
         return 1;
-
 }
 
-void ProcessPacket(unsigned char *buffer, int size)
+void process_packet(unsigned char *buffer, int size)
 {
-    int i, hlim;
-    char hlim_str[3] = {0}, src_ip[40];
+    int i, hlim, ip_v, protocol;
+    char hlim_str[3] = {0}, src_ip[40], ip_v_str[3], protocol_str[3];
     struct in6_addr ip_addr;
     uint32_t hash;
     char hash_left_str[10], hash_right_str[10];
 
     snprintf(hlim_str, sizeof(hlim_str), "%02x", buffer[HLIM_BYTE_POSITION]);
     hlim = (int)strtol(hlim_str, NULL, 16);
+
+    snprintf(ip_v_str, sizeof(ip_v_str), "%02x", buffer[IP_V_BYTE_POSITION]);
+    ip_v = (int)strtol(ip_v_str, NULL, 16) >> 4;
+
+    snprintf(protocol_str, sizeof(protocol_str), "%02x", buffer[NEXT_HEADER_BYTE_POSITION]);
+    protocol = (int)strtol(protocol_str, NULL, 16);
 
     snprintf(src_ip,
              40,
@@ -117,7 +115,19 @@ void ProcessPacket(unsigned char *buffer, int size)
     hash_right_int = (int)strtol(hash_right_str, NULL, 16);
     // printf("Hash right int: %d\n", hash_right_int);
 
-    if (is_ip_routable(src_ip) == 1)
+    if (ip_v != 6)
+    {
+        printf("⛔ Not an IPv6 packet\n\n");
+    }
+    else if (protocol != 58)
+    {
+        printf("⛔ Not a TCP packet\n\n");
+    }
+    else if (is_ip_routable(src_ip) != 1)
+    {
+        printf("⛔ IP is not routable\n\n");
+    }
+    else
     {
         if (check_hop_count(src_ip, hash_left_int, hash_right_int, hlim) == 0)
         {
@@ -127,10 +137,6 @@ void ProcessPacket(unsigned char *buffer, int size)
         {
             printf("❌ Hop Count not checked\n\n");
         }
-    }
-    else
-    {
-        printf("⛔ IP is not routable\n\n");
     }
 }
 
@@ -158,19 +164,21 @@ int main()
     {
         saddr_size = sizeof(saddr);
         // Receive a packet
+        printf("Receiving a packet\n");
         data_size = recvfrom(sock_raw, buffer, 65536, 0, (struct sockaddr *)&saddr, &saddr_size);
+        printf("Received a packet\n");
         if (data_size < 0)
         {
             printf("Recvfrom error , failed to get packets\n");
             return 1;
         }
         // Now process the packet
-        ProcessPacket(buffer, data_size);
+        process_packet(buffer, data_size);
 
         // NEED A WAY TO TERMINATE THE LOOP
         // NEED A WAY TO CLOSE THE H5 FILE POINTER AFTER PROGRAM TERMINATION
     }
     close(sock_raw);
-    printf("Finished");
+    printf("Finished\n");
     return 0;
 }

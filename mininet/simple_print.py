@@ -147,8 +147,6 @@ class PacketRateMonitor(app_manager.RyuApp):
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):        
-        # If you hit this you might want to increase
-        # the "miss_send_length" of your switch
         if ev.msg.msg_len < ev.msg.total_len:
             self.logger.debug("packet truncated: only %s of %s bytes",
                               ev.msg.msg_len, ev.msg.total_len)
@@ -173,9 +171,6 @@ class PacketRateMonitor(app_manager.RyuApp):
         # used to calculate the entropy
         key = '-'.join([str(dpid), str(in_port), src_mac, dst_mac])
         self.packet_count[key] = self.packet_count.get(key, 0) + 1
-
-        # self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
-        # self.logger.info("packet in %s %s %s %s", dpid, src_mac, dst_mac, in_port)
 
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src_mac] = in_port
@@ -214,7 +209,6 @@ class PacketRateMonitor(app_manager.RyuApp):
 
         # match all packets
         match = parser.OFPMatch()
-        #match.set_in_port(ofproto.OFPP_ANY)
         # send them to the controller
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
@@ -235,15 +229,12 @@ class PacketRateMonitor(app_manager.RyuApp):
 
         datapath.send_msg(req)
 
-
         # Create an OFPMatch object with no match criteria
         match = parser.OFPMatch()
 
         # Enable aggregate statistics to retrieve statistics about the entire switch, such as the number of packets and bytes processed by the switch
         req = parser.OFPAggregateStatsRequest(datapath, 0, cookie=0, cookie_mask=0, match=match, table_id=ofproto.OFPTT_ALL, out_port=ofproto.OFPP_ANY, out_group=ofproto.OFPG_ANY)
         
-        #self.switches[datapath.id] = datapath
-
         datapath.send_msg(req)
 
     @set_ev_cls(ofp_event.EventOFPPortStatsReply, MAIN_DISPATCHER)
@@ -258,15 +249,12 @@ class PacketRateMonitor(app_manager.RyuApp):
             # number of received packets
             rx_packets = stat.rx_packets
             # number of transmitted packets - not considering the packets leaving the switch
-            # tx_packets = stat.tx_packets
             duration_sec = stat.duration_sec
             duration_nsec = stat.duration_nsec
             
             # Store packet rate data in a dictionary
             packet_rate_data = { 'switch_id': datapath.id, 'port_no': port_no, 'num_packets': rx_packets, 'time': duration_sec + duration_nsec / 1e9}
             self.send_packet_rate_data(packet_rate_data)
-
-        #self.send_entropy_data(self.packet_count)
 
     def send_packet_rate_data(self, data):
         # Send the packet rate data to the Ryu REST API server

@@ -18,7 +18,7 @@ MAX_DATAPOINTS = 5
 FLOW_SD_STEPS = 1
 PACKET_RATE_SD_STEPS = 1
 ENTROPY_STEPS = 1
-
+SERVER_URL = "http://127.0.0.1:8080"
 
 class PacketRateMonitor(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -48,7 +48,7 @@ class PacketRateMonitor(app_manager.RyuApp):
             hub.sleep(5) # Request port stats every 5 seconds
 
     def _calc_sd_packet_rate(self, datapath):
-        url = 'http://127.0.0.1:8080/packet_rate'
+        url = SERVER_URL + '/packet_rate'
         response = requests.get(url)
         print(f"Packet Rate Outputs")
         if response.status_code == 200:
@@ -73,7 +73,7 @@ class PacketRateMonitor(app_manager.RyuApp):
         return
     
     def _calc_sd_flow_count(self, datapath):
-        url = 'http://127.0.0.1:8080/flow_count'
+        url = SERVER_URL + '/flow_count'
         response = requests.get(url)
         print(f"Flow Count Outputs:")
         if response.status_code == 200:
@@ -100,7 +100,7 @@ class PacketRateMonitor(app_manager.RyuApp):
         return
     
     def _calc_sd_entropy(self, datapath):
-        url = 'http://127.0.0.1:8080/entropy'
+        url = SERVER_URL + '/entropy'
         response = requests.get(url)
         print(f"Entropy Outputs:")
         if response.status_code == 200:
@@ -268,14 +268,14 @@ class PacketRateMonitor(app_manager.RyuApp):
 
     def send_packet_rate_data(self, data):
         # Send the packet rate data to the Ryu REST API server
-        url = 'http://127.0.0.1:8080/packet_rate'
+        url = SERVER_URL + '/packet_rate'
         response = requests.post(url, json=data)
         if response.status_code != 200:
             self.logger.error('Failed to send packet rate data')
 
     # Send the entropy data to the RYU REST API server
     def send_entropy_data(self, data):
-        url = 'http://127.0.0.1:8080/entropy'
+        url = SERVER_URL + '/entropy'
         response = requests.post(url, json=data)
         if response.status_code != 200:
             self.logger.error('Failed to send entropy data')
@@ -305,7 +305,7 @@ class PacketRateMonitor(app_manager.RyuApp):
                 self.send_flow_count_data({'switch_id': datapath.id, 'count': flow_data})
 
     def send_flow_count_data(self, data):
-        url = 'http://127.0.0.1:8080/flow_count'
+        url = SERVER_URL + '/flow_count'
         response = requests.post(url, json=data)
         if response.status_code != 200:
             self.logger.error('Failed to send flow count data')

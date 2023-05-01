@@ -15,7 +15,10 @@ from ryu.topology import api as topo_api
 import numpy as np
 
 MAX_DATAPOINTS = 5
-SD_STEPS=1
+FLOW_SD_STEPS=1
+PACKET_RATE_SD_STEPS=1
+ENTROPY_STEPS=1
+
 
 class PacketRateMonitor(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -38,11 +41,16 @@ class PacketRateMonitor(app_manager.RyuApp):
             for switch in switches:
                 self._request_port_stats(switch.dp)
                 self._calc_sd_flow_count(switch.dp)
+                self._calc_sd_packet_rate(switch.dp)
+                self._calc_sd_entropy(switch.dp)
+            
+            self.send_entropy_data(self.packet_count)
             hub.sleep(5) # Request port stats every 5 seconds
 
-    def _calc_sd_flow_count(self, datapath):
+    def _calc_sd_packet_rate(self, datapath):
         url = 'http://127.0.0.1:8080/packet_rate'
         response = requests.get(url)
+        print(f"Packet Rate Outputs")
         if response.status_code == 200:
             packet_rate_data = response.json()
             #print(packet_rate_data)  # print the packet rate data
@@ -55,13 +63,57 @@ class PacketRateMonitor(app_manager.RyuApp):
                 #packet_rates = port_data['packet_rate']
                 sd=np.std(port_data)
                 mean=sum(port_data)/len(port_data)
-                if( abs( ((port_data[-1]-mean)/sd) > SD_STEPS)):
+                if( abs( ((port_data[-1]-mean)/sd) > PACKET_RATE_SD_STEPS)):
                     print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
                 else:
                     print(f"✅ Switch {switch_id} Port {port_no} is fine")
                 print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
-
-
+        return
+    
+    def _calc_sd_flow_count(self, datapath):
+        url = 'http://127.0.0.1:8080/flow_count'
+        response = requests.get(url)
+        print(f"Flow Count Outputs:")
+        if response.status_code == 200:
+            flow_count_data = response.json()
+            print(flow_count_data)  # print the packet rate data
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+        
+        for switch_id, switch_data in flow_count_data.items():
+            print(f"Switch {switch_id}:")
+            for port_no, port_data in switch_data.items():
+                #packet_rates = port_data['packet_rate']
+                sd=np.std(port_data)
+                mean=sum(port_data)/len(port_data)
+                if( abs( ((port_data[-1]-mean)/sd) > FLOW_SD_STEPS)):
+                    print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                else:
+                    print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
+        return
+    
+    def _calc_sd_entropy(self, datapath):
+        url = 'http://127.0.0.1:8080/entropy'
+        response = requests.get(url)
+        print(f"Entropy Outputs:")
+        if response.status_code == 200:
+            entropy_data = response.json()
+            print(entropy_data)  # print the entropy data
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+        
+        for switch_id, switch_data in entropy_data.items():
+            print(f"Switch {switch_id}:")
+            for port_no, port_data in switch_data.items():
+                #packet_rates = port_data['packet_rate']
+                sd=np.std(port_data)
+                mean=sum(port_data)/len(port_data)
+                if( abs( ((port_data[-1]-mean)/sd) > ENTROPY_STEPS)):
+                    print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                else:
+                    print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
         return
 
 
@@ -218,7 +270,7 @@ class PacketRateMonitor(app_manager.RyuApp):
             packet_rate_data = { 'switch_id': datapath.id, 'port_no': port_no, 'num_packets': rx_packets, 'time': duration_sec + duration_nsec / 1e9}
             self.send_packet_rate_data(packet_rate_data)
 
-        self.send_entropy_data(self.packet_count)
+        #self.send_entropy_data(self.packet_count)
 
     def send_packet_rate_data(self, data):
         # Send the packet rate data to the Ryu REST API server
@@ -313,21 +365,29 @@ class PacketRateMonitorController(ControllerBase):
     # update the entropy of a switch
     @route('entropy_monitor', '/entropy', methods=['POST'])
     def post_entropy(self, req, **kwargs):
+        #PacketRateMonitorController.entropy_data = {} #to remove
         data = req.json
         total_packets = sum(data.values())
         interface_entropy = {}
-        
+        print(f"entropy:")
+        print(json.dumps(PacketRateMonitorController.entropy_data))
+
         for key in data:
             [datapath_id, in_port, src, dst] = key.split("-")
             probability = data[key] / total_packets
             interface_entropy['-'.join([datapath_id, in_port])] = interface_entropy.get('-'.join([datapath_id, in_port]), 0) - probability * log2(probability)
             #interface_entropy[datapath_id] = {in_port: interface_entropy[datapath_id].get(in_port, 0) - probability * log2(probability)}
         for key in interface_entropy:
+            #print(key)
+            
             [datapath_id, in_port] = key.split("-")
             if datapath_id in PacketRateMonitorController.entropy_data:
-                PacketRateMonitorController.entropy_data[datapath_id][in_port] = interface_entropy[key]
+                if in_port in PacketRateMonitorController.entropy_data[datapath_id]:
+                    PacketRateMonitorController.entropy_data[datapath_id][in_port].append(interface_entropy[key])
+                else:
+                    PacketRateMonitorController.entropy_data[datapath_id][in_port] = [interface_entropy[key]]
             else:
-                PacketRateMonitorController.entropy_data[datapath_id] = {in_port:interface_entropy[key]}
+                PacketRateMonitorController.entropy_data[datapath_id] = {in_port:[interface_entropy[key]]}
         return Response(status=200)
 
     # get the entropies of all the switches
@@ -335,7 +395,9 @@ class PacketRateMonitorController(ControllerBase):
     def get_entropy(self, req, **kwargs):
         return json.dumps(PacketRateMonitorController.entropy_data)
 
-    # update the flow counts of a switch
+
+
+    # update the flow count of a switch
     @route('flow_count_monitor', '/flow_count', methods=['POST'])
     def post_flow_count(self, req, **kwargs):
         data = req.json

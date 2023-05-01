@@ -15,9 +15,9 @@ from ryu.topology import api as topo_api
 import numpy as np
 
 MAX_DATAPOINTS = 5
-FLOW_SD_STEPS=1
-PACKET_RATE_SD_STEPS=1
-ENTROPY_STEPS=1
+FLOW_SD_STEPS = 1
+PACKET_RATE_SD_STEPS = 1
+ENTROPY_STEPS = 1
 
 
 class PacketRateMonitor(app_manager.RyuApp):
@@ -53,7 +53,6 @@ class PacketRateMonitor(app_manager.RyuApp):
         print(f"Packet Rate Outputs")
         if response.status_code == 200:
             packet_rate_data = response.json()
-            #print(packet_rate_data)  # print the packet rate data
         else:
             print(f"Error: {response.status_code} - {response.text}")
         
@@ -106,9 +105,8 @@ class PacketRateMonitor(app_manager.RyuApp):
         for switch_id, switch_data in entropy_data.items():
             print(f"Switch {switch_id}:")
             for port_no, port_data in switch_data.items():
-                #packet_rates = port_data['packet_rate']
-                sd=np.std(port_data)
-                mean=sum(port_data)/len(port_data)
+                sd = np.std(port_data)
+                mean = sum(port_data)/len(port_data)
                 if( abs( ((port_data[-1]-mean)/sd) > ENTROPY_STEPS)):
                     print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
                 else:
@@ -130,7 +128,6 @@ class PacketRateMonitor(app_manager.RyuApp):
         for port in datapath.ports.values():
             if port.port_no != 4294967293:
                 print(f"\tRequesting from port {port.port_no}")
-
                 req = parser.OFPPortStatsRequest(datapath, 0, port.port_no)
                 datapath.send_msg(req)
 
@@ -138,8 +135,7 @@ class PacketRateMonitor(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         if buffer_id:
             mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
                                     priority=priority, match=match,

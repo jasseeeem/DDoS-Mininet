@@ -31,10 +31,9 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
     hsize_t start[2], count[2];
     herr_t status;
     uint8_t data;
-    uint8_t * calculated_hop_count = (uint8_t *)malloc(sizeof(uint8_t));
+    uint8_t *calculated_hop_count = (uint8_t *)malloc(sizeof(uint8_t));
     *calculated_hop_count = hlim_to_hop_count(hlim);
     file = H5Fopen(FILE, H5F_ACC_RDWR, H5P_DEFAULT);
-    // file = get_or_create_table();
     dataset = H5Dopen2(file, DATASETNAME, H5P_DEFAULT);
     dataspace = H5Dget_space(dataset);
 
@@ -96,9 +95,9 @@ int check_hop_count(char src_ip[], int row, int col, int hlim)
 
 void get_or_create_table()
 {
-    hid_t file, dataset;       /* file and dataset handles */
-    hid_t datatype, dataspace; /* handles */
-    hsize_t dimsf[2];          /* dataset dimensions */
+    hid_t file, dataset;       // file and dataset handles
+    hid_t datatype, dataspace; // handles
+    hsize_t dimsf[2];          // dataset dimensions
     herr_t status;
 
     int i;
@@ -112,9 +111,9 @@ void get_or_create_table()
 
             uint8_t *data; /* data to write */
             data = (uint8_t *)malloc(NX * NY * sizeof(uint8_t));
-            //memset(data, -1, NX * NY * sizeof(int));
-            //uint8_t initial = 255;
-            for(i=0; i<(NX*NY); i++)
+            // memset(data, -1, NX * NY * sizeof(int));
+            // uint8_t initial = 255;
+            for (i = 0; i < (NX * NY); i++)
             {
                 data[i] = INITIAL_HOP_COUNT;
             }
@@ -131,7 +130,6 @@ void get_or_create_table()
             status = H5Dwrite(dataset, H5T_NATIVE_UINT8, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
 
             free(data);
-            // veno?
             H5Sclose(dataspace);
             H5Tclose(datatype);
             H5Dclose(dataset);
@@ -140,8 +138,3 @@ void get_or_create_table()
     H5E_END_TRY;
     H5Fclose(file);
 }
-
-// int main()
-// {
-//     get_or_create_table();
-// }

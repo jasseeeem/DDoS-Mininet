@@ -13,6 +13,7 @@ from scapy.layers.l2 import Ether
 import ryu.lib.hub as hub
 from ryu.topology import api as topo_api
 import numpy as np
+import logging
 
 MAX_DATAPOINTS = 5
 FLOW_SD_STEPS = 1
@@ -34,6 +35,14 @@ class PacketRateMonitor(app_manager.RyuApp):
 
         # Start the periodic stats request timer
         self.monitor_thread = hub.spawn(self._monitor)
+
+        # Disable werkzeug logger
+        werkzeug_logger = logging.getLogger('werkzeug')
+        werkzeug_logger.setLevel(logging.ERROR)
+
+        # Disable all RYU loggers
+        logging.basicConfig(level=logging.DEBUG, handlers=[logging.FileHandler('ryu.log')])
+        logging.getLogger().setLevel(logging.CRITICAL)
 
     def _monitor(self):
         while True:

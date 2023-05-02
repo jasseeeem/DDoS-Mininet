@@ -20,6 +20,7 @@ FLOW_SD_STEPS = 1
 PACKET_RATE_SD_STEPS = 1
 ENTROPY_STEPS = 1
 SERVER_URL = "http://127.0.0.1:8080"
+NO_BUFFER_PORT = "4294967294"
 
 class PacketRateMonitor(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -67,7 +68,7 @@ class PacketRateMonitor(app_manager.RyuApp):
 
         for switch_id, switch_data in packet_rate_data.items():
             for port_no, port_data in switch_data.items():
-                if(str(port_no)=="4294967294"):
+                if(str(port_no)==NO_BUFFER_PORT):
                     continue
                 else:
                     if(len(port_data)>=(MAX_DATAPOINTS-1)):
@@ -93,7 +94,7 @@ class PacketRateMonitor(app_manager.RyuApp):
         
         for switch_id, switch_data in flow_count_data.items():
             for port_no, port_data in switch_data.items():
-                if(str(port_no)=="4294967294"):
+                if(str(port_no)==NO_BUFFER_PORT):
                     continue
                 else:
                     if(len(port_data)>=(MAX_DATAPOINTS-1)):
@@ -119,7 +120,7 @@ class PacketRateMonitor(app_manager.RyuApp):
         
         for switch_id, switch_data in entropy_data.items():
             for port_no, port_data in switch_data.items():
-                if(str(port_no)=="4294967294"):
+                if(str(port_no)==NO_BUFFER_PORT):
                     continue
                 else:
                     if(len(port_data)>=MAX_DATAPOINTS-1):
@@ -146,7 +147,7 @@ class PacketRateMonitor(app_manager.RyuApp):
     
         # send port stats request for the switch
         for port in datapath.ports.values():
-            if port.port_no != 4294967293:
+            if str(port.port_no) != NO_BUFFER_PORT:
                 print(f"\tRequesting from port {port.port_no}")
                 req = parser.OFPPortStatsRequest(datapath, 0, port.port_no)
                 datapath.send_msg(req)

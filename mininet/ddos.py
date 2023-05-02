@@ -3,6 +3,10 @@ from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.cli import CLI
 
+NUM_PACKETS = 1000
+NUM_FLOWS = 10
+DURATION = 100000
+
 class MyTopo( Topo ):
     # "2 switch 2 host custom topology"
 
@@ -59,6 +63,14 @@ def main():
     h7 = net.get('h7')
     h8 = net.get('h8')
     h9 = net.get('h9')
+
+    # Run HCF module
+    # h2.cmd(f"rm -rf /home/jaseem/Documents/DDoS-Mininet/hcf/hdf5.h5 && sudo /home/jaseem/Documents/DDoS-Mininet/hcf/a.out &")
+    # h3.cmd(f"rm -rf /home/jaseem/Documents/DDoS-Mininet/hcf/hdf5.h5 && sudo /home/jaseem/Documents/DDoS-Mininet/hcf/a.out &")
+    # h1.cmd(f"rm -rf /home/jaseem/Documents/DDoS-Mininet/hcf/hdf5.h5 && sudo /home/jaseem/Documents/DDoS-Mininet/hcf/a.out &")
+    # h5.cmd(f"rm -rf /home/jaseem/Documents/DDoS-Mininet/hcf/hdf5.h5 && sudo /home/jaseem/Documents/DDoS-Mininet/hcf/a.out &")
+    # h7.cmd(f"rm -rf /home/jaseem/Documents/DDoS-Mininet/hcf/hdf5.h5 && sudo /home/jaseem/Documents/DDoS-Mininet/hcf/a.out &")
+    # h9.cmd(f"rm -rf /home/jaseem/Documents/DDoS-Mininet/hcf/hdf5.h5 && sudo /home/jaseem/Documents/DDoS-Mininet/hcf/a.out &")
     
     # Run the servers
     h4.cmd("/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGRecv &")
@@ -66,7 +78,12 @@ def main():
     h8.cmd("/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGRecv &")
 
     # Run HTTP simulation
-    
+    h1.cmd(f"h1 ITGSend -T TCP -a 10.0.0.6 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
+    h2.cmd(f"h1 ITGSend -T TCP -a 10.0.0.8 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
+    h3.cmd(f"h1 ITGSend -T TCP -a 10.0.0.4 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
+    h5.cmd(f"h1 ITGSend -T TCP -a 10.0.0.4 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
+    h7.cmd(f"h1 ITGSend -T TCP -a 10.0.0.8 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
+    h9.cmd(f"h1 ITGSend -T TCP -a 10.0.0.6 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
     
     CLI(net)
     

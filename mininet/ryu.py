@@ -68,7 +68,6 @@ class PacketRateMonitor(app_manager.RyuApp):
         for switch_id, switch_data in packet_rate_data.items():
             print(f"Switch {switch_id}:")
             for port_no, port_data in switch_data.items():
-                # packet_rates = port_data['packet_rate']
                 if(len(port_data)>=(MAX_DATAPOINTS-1)):
                     sd=np.std(port_data[:-1])
                     mean=sum(port_data[:-1])/(len(port_data)-1)
@@ -87,22 +86,20 @@ class PacketRateMonitor(app_manager.RyuApp):
         print(f"Flow Count Outputs:")
         if response.status_code == 200:
             flow_count_data = response.json()
-            print(flow_count_data)  # print the packet rate data
         else:
             print(f"Error: {response.status_code} - {response.text}")
         
         for switch_id, switch_data in flow_count_data.items():
             print(f"Switch {switch_id}:")
             for port_no, port_data in switch_data.items():
-                #packet_rates = port_data['packet_rate']
                 
                 if(len(port_data)>=(MAX_DATAPOINTS-1)):
                     sd=np.std(port_data[:-1])
                     mean=sum(port_data[:-1])/ (len(port_data)-1)
                     if( abs( ((port_data[-1]-mean)/sd) > FLOW_SD_STEPS)):
-                        print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly || Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
+                        print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
                     else:
-                        print(f"✅ Switch {switch_id} Port {port_no} is fine || Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
+                        print(f"✅ Switch {switch_id} Port {port_no} is fine")
                 else:
                     print(f"🟡 Port does not have enough data")
                     print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]}")
@@ -114,20 +111,18 @@ class PacketRateMonitor(app_manager.RyuApp):
         print(f"Entropy Outputs:")
         if response.status_code == 200:
             entropy_data = response.json()
-            print(entropy_data)  # print the entropy data
         else:
             print(f"Error: {response.status_code} - {response.text}")
         
         for switch_id, switch_data in entropy_data.items():
-            # print(f"Switch {switch_id}:")
             for port_no, port_data in switch_data.items():
                 if(len(port_data)>=MAX_DATAPOINTS-1):
                     sd = np.std(port_data[:-1])
                     mean = sum(port_data[:-1])/(len(port_data)-1)
                     if( abs( ((port_data[-1]-mean)/sd) > ENTROPY_STEPS)):
-                        print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly || Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
+                        print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
                     else:
-                        print(f"✅ Switch {switch_id} Port {port_no} is fine || Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]} Avg: {mean}, SD: {sd}")
+                        print(f"✅ Switch {switch_id} Port {port_no} is fine")
                 else:
                     print(f"🟡 Port does not have enough data")
                     print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]}")

@@ -341,9 +341,9 @@ class PacketRateMonitorController(ControllerBase):
             prev_packet_rate = []
             if data['port_no'] in PacketRateMonitorController.packet_rate_data[data['switch_id']].keys():
                 prev_packet_rate = PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']]['packet_rate']
-            PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']] = {'packet_rate': prev_packet_rate[-MAX_DATAPOINTS + 1 :] + [packet_diff / time_diff], 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}
+            PacketRateMonitorController.packet_rate_data[data['switch_id']][data['port_no']] = {'packet_rate': prev_packet_rate[-MAX_DATAPOINTS + 1 :] + [round((packet_diff / time_diff), 2)], 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}
         else:
-            PacketRateMonitorController.packet_rate_data[data['switch_id']] = {data['port_no']: {'packet_rate': [data['num_packets'] / data['time']], 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}}
+            PacketRateMonitorController.packet_rate_data[data['switch_id']] = {data['port_no']: {'packet_rate': [round((data['num_packets'] / data['time']), 2)], 'prev_num_packets': data['num_packets'], 'prev_time': data['time']}}
         return Response(status=200)
 
     # get the packet rates of all switches
@@ -375,16 +375,17 @@ class PacketRateMonitorController(ControllerBase):
             #print(key)
             
             [datapath_id, in_port] = key.split("-")
+            datapath_id = int(datapath_id)
             if datapath_id in PacketRateMonitorController.entropy_data:
                 if in_port in PacketRateMonitorController.entropy_data[datapath_id]:
                     if len(PacketRateMonitorController.entropy_data[datapath_id][in_port]) == MAX_DATAPOINTS:
-                        PacketRateMonitorController.entropy_data[datapath_id][in_port] = PacketRateMonitorController.entropy_data[datapath_id][in_port][-MAX_DATAPOINTS + 1 :] + [interface_entropy[key]]
+                        PacketRateMonitorController.entropy_data[datapath_id][in_port] = PacketRateMonitorController.entropy_data[datapath_id][in_port][-MAX_DATAPOINTS + 1 :] + [round(interface_entropy[key])]
                     else:
-                        PacketRateMonitorController.entropy_data[datapath_id][in_port].append(interface_entropy[key])
+                        PacketRateMonitorController.entropy_data[datapath_id][in_port].append(round(interface_entropy[key]))
                 else:
-                    PacketRateMonitorController.entropy_data[datapath_id][in_port] = [interface_entropy[key]]
+                    PacketRateMonitorController.entropy_data[datapath_id][in_port] = [round(interface_entropy[key], 2)]
             else:
-                PacketRateMonitorController.entropy_data[datapath_id] = {in_port:[interface_entropy[key]]}
+                PacketRateMonitorController.entropy_data[datapath_id] = {in_port:[round(interface_entropy[key], 2)]}
         return Response(status=200)
 
     # get the entropies of all the switches

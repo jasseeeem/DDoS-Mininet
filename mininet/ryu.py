@@ -66,18 +66,20 @@ class PacketRateMonitor(app_manager.RyuApp):
             print(f"Error: {response.status_code} - {response.text}")
 
         for switch_id, switch_data in packet_rate_data.items():
-            print(f"Switch {switch_id}:")
             for port_no, port_data in switch_data.items():
-                if(len(port_data)>=(MAX_DATAPOINTS-1)):
-                    sd=np.std(port_data[:-1])
-                    mean=sum(port_data[:-1])/(len(port_data)-1)
-                    if( abs( ((port_data[-1]-mean)/sd) > PACKET_RATE_SD_STEPS)):
-                        print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
-                    else:
-                        print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                if(str(port_no)=="4294967294"):
+                    continue
                 else:
-                    print(f"🟡 Port does not have enough data")
-                    print(f"  Port {port_no}")
+                    if(len(port_data)>=(MAX_DATAPOINTS-1)):
+                        sd=np.std(port_data[:-1])
+                        mean=sum(port_data[:-1])/(len(port_data)-1)
+                        if( abs( ((port_data[-1]-mean)/sd) > PACKET_RATE_SD_STEPS)):
+                            print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                        else:
+                            print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                    else:
+                        print(f"🟡 Switch {switch_id} does not have enough data")
+                        break
         return
     
     def _calc_sd_flow_count(self, datapath):
@@ -90,19 +92,20 @@ class PacketRateMonitor(app_manager.RyuApp):
             print(f"Error: {response.status_code} - {response.text}")
         
         for switch_id, switch_data in flow_count_data.items():
-            print(f"Switch {switch_id}:")
             for port_no, port_data in switch_data.items():
-                
-                if(len(port_data)>=(MAX_DATAPOINTS-1)):
-                    sd=np.std(port_data[:-1])
-                    mean=sum(port_data[:-1])/ (len(port_data)-1)
-                    if( abs( ((port_data[-1]-mean)/sd) > FLOW_SD_STEPS)):
-                        print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
-                    else:
-                        print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                if(str(port_no)=="4294967294"):
+                    continue
                 else:
-                    print(f"🟡 Port does not have enough data")
-                    print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]}")
+                    if(len(port_data)>=(MAX_DATAPOINTS-1)):
+                        sd=np.std(port_data[:-1])
+                        mean=sum(port_data[:-1])/ (len(port_data)-1)
+                        if( abs( ((port_data[-1]-mean)/sd) > FLOW_SD_STEPS)):
+                            print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                        else:
+                            print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                    else:
+                        print(f"🟡 Switch {switch_id} does not have enough data")
+                        break
         return
     
     def _calc_sd_entropy(self, datapath):
@@ -116,16 +119,19 @@ class PacketRateMonitor(app_manager.RyuApp):
         
         for switch_id, switch_data in entropy_data.items():
             for port_no, port_data in switch_data.items():
-                if(len(port_data)>=MAX_DATAPOINTS-1):
-                    sd = np.std(port_data[:-1])
-                    mean = sum(port_data[:-1])/(len(port_data)-1)
-                    if( abs( ((port_data[-1]-mean)/sd) > ENTROPY_STEPS)):
-                        print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
-                    else:
-                        print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                if(str(port_no)=="4294967294"):
+                    continue
                 else:
-                    print(f"🟡 Port does not have enough data")
-                    print(f"  Port {port_no}: {port_data}, {port_data[:-1]}, {port_data[-1]}")
+                    if(len(port_data)>=MAX_DATAPOINTS-1):
+                        sd = np.std(port_data[:-1])
+                        mean = sum(port_data[:-1])/(len(port_data)-1)
+                        if( abs( ((port_data[-1]-mean)/sd) > ENTROPY_STEPS)):
+                            print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                        else:
+                            print(f"✅ Switch {switch_id} Port {port_no} is fine")
+                    else:
+                        print(f"🟡 Switch {switch_id} does not have enough data")
+                        break
         return
 
 

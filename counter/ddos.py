@@ -4,7 +4,7 @@ from mininet.link import TCLink
 from mininet.cli import CLI
 
 NUM_PACKETS = 100000         # 100 pkts/sec 
-NUM_FLOWS = 10
+PACKET_RATE = 10
 DURATION = 100000       # 100 seconds
 
 class MyTopo( Topo ):
@@ -78,12 +78,12 @@ def main():
     h8.cmd("/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGRecv &")
 
     # Run HTTP simulation
-    h1.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.6 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
-    h2.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.8 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
-    h3.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.4 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
-    h5.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.4 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
-    h7.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.8 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
-    h9.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.6 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
+    h1.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.6 -z {NUM_PACKETS} -C {PACKET_RATE} -t {DURATION} &")
+    h2.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.8 -z {NUM_PACKETS} -C {PACKET_RATE} -t {DURATION} &")
+    h3.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.4 -z {NUM_PACKETS} -C {PACKET_RATE} -t {DURATION} &")
+    h5.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.4 -z {NUM_PACKETS} -C {PACKET_RATE} -t {DURATION} &")
+    h7.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.8 -z {NUM_PACKETS} -C {PACKET_RATE} -t {DURATION} &")
+    h9.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.6 -z {NUM_PACKETS} -C {PACKET_RATE} -t {DURATION} &")
     
     # print("RESULT: ", result)
     CLI(net)

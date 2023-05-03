@@ -79,8 +79,8 @@ class PacketRateMonitor(app_manager.RyuApp):
                         else:
                             print(f"✅ Switch {switch_id} Port {port_no} is fine")
                     else:
-                        print(f"🟡 Switch {switch_id} does not have enough data")
-                        break
+                        print(f"🟡 Switch {switch_id} Port {port_no} does not have enough data")
+                        
         return
     
     def _calc_sd_flow_count(self, datapath):

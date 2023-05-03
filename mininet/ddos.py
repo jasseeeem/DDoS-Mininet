@@ -3,9 +3,9 @@ from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.cli import CLI
 
-NUM_PACKETS = 1000
+NUM_PACKETS = 100000         # 100 pkts/sec 
 NUM_FLOWS = 10
-DURATION = 100000
+DURATION = 100000       # 100 seconds
 
 class MyTopo( Topo ):
     # "2 switch 2 host custom topology"
@@ -78,13 +78,14 @@ def main():
     h8.cmd("/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGRecv &")
 
     # Run HTTP simulation
-    h1.cmd(f"h1 ITGSend -T TCP -a 10.0.0.6 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
-    h2.cmd(f"h1 ITGSend -T TCP -a 10.0.0.8 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
-    h3.cmd(f"h1 ITGSend -T TCP -a 10.0.0.4 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
-    h5.cmd(f"h1 ITGSend -T TCP -a 10.0.0.4 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
-    h7.cmd(f"h1 ITGSend -T TCP -a 10.0.0.8 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
-    h9.cmd(f"h1 ITGSend -T TCP -a 10.0.0.6 -c {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION}")
+    h1.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.6 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
+    h2.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.8 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
+    h3.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.4 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
+    h5.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.4 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
+    h7.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.8 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
+    h9.cmd(f"/home/jaseem/Downloads/D-ITG-2.8.1-r1023/bin/ITGSend -d 10000 -T TCP -a 10.0.0.6 -z {NUM_PACKETS} -C {NUM_FLOWS} -t {DURATION} &")
     
+    # print("RESULT: ", result)
     CLI(net)
     
     net.stop()

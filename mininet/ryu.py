@@ -1,3 +1,4 @@
+# from ryu.topology.api import get_link
 from math import log2
 from ryu.base import app_manager
 from ryu.controller import ofp_event
@@ -14,13 +15,17 @@ import ryu.lib.hub as hub
 from ryu.topology import api as topo_api
 import numpy as np
 import logging
+from ryu.lib import mac
 
 MAX_DATAPOINTS = 5
-FLOW_SD_STEPS = 1
-PACKET_RATE_SD_STEPS = 1
-ENTROPY_STEPS = 1
+PACKET_RATE_SD_STEPS = 100
+FLOW_SD_STEPS = 2
+ENTROPY_STEPS = 2
 SERVER_URL = "http://127.0.0.1:8080"
 NO_BUFFER_PORT = "4294967294"
+
+
+
 
 class PacketRateMonitor(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -33,7 +38,10 @@ class PacketRateMonitor(app_manager.RyuApp):
         self.mac_to_port = {}
         self.packet_count = {}
         self.flow_count = {}    #Will this be blank every time we request for a switch?
-
+        self.NODE_SWITCH_MATRIX = [[True, False, False, False, False, False],
+                      [True, True, True, False, False, False],
+                      [True, True, True, False, False, False],
+                      [True, True, False, False, False, False]]
         # Start the periodic stats request timer
         self.monitor_thread = hub.spawn(self._monitor)
 
@@ -48,6 +56,8 @@ class PacketRateMonitor(app_manager.RyuApp):
     def _monitor(self):
         while True:
             switches = topo_api.get_switch(self, None)
+            # links = topo_api.get_all_link(self)
+            # print(len(links))
             for switch in switches:
                 self._request_port_stats(switch.dp)
                 self._calc_sd_flow_count(switch.dp)
@@ -56,6 +66,35 @@ class PacketRateMonitor(app_manager.RyuApp):
             
             self.send_entropy_data(self.packet_count)
             hub.sleep(5) # Request port stats every 5 seconds
+
+    def mitigation(self, switch_id, port_id, datapath):
+        return
+        if self.NODE_SWITCH_MATRIX[int(switch_id)-1][int(port_id)-1] == True:
+            ofproto = datapath.ofproto
+            parser = datapath.ofproto_parser
+            
+            # Set the priority of the flow to the highest possible value
+            #priority = ofproto.OFP_DEFAULT_PRIORITY + 1
+            
+            #print(datapath.id)
+            #return
+            # Create a match object to match incoming packets from the specified port
+            match = parser.OFPMatch(in_port=int(port_id))
+            print("HELLO\n")
+            # Create an action object to drop incoming packets
+            actions = []
+
+            # Create an instruction object to apply the action immediately
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+
+            # Create a flow mod message to add the flow to the switch
+            mod = parser.OFPFlowMod(datapath=datapath, priority=0, match=match, instructions=inst)
+
+            # Send the flow mod message to the switch
+            datapath.send_msg(mod)
+        else:
+            print("SWITCH-SWITCH\n")
+
 
     def _calc_sd_packet_rate(self, datapath):
         url = SERVER_URL + '/packet_rate'
@@ -74,8 +113,11 @@ class PacketRateMonitor(app_manager.RyuApp):
                     if(len(port_data)>=(MAX_DATAPOINTS-1)):
                         sd=np.std(port_data[:-1])
                         mean=sum(port_data[:-1])/(len(port_data)-1)
-                        if( abs( ((port_data[-1]-mean)/sd) > PACKET_RATE_SD_STEPS)):
+                        if(mean > 0.0 and abs( ((port_data[-1]-mean)/sd) > PACKET_RATE_SD_STEPS)):
                             print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                            with open('ryu.log', 'a') as f:
+                                f.write(f"{switch_id}\t{port_no}\n")
+                            self.mitigation(switch_id, port_no, datapath)
                         else:
                             print(f"✅ Switch {switch_id} Port {port_no} is fine")
                     else:
@@ -100,8 +142,9 @@ class PacketRateMonitor(app_manager.RyuApp):
                     if(len(port_data)>=(MAX_DATAPOINTS-1)):
                         sd=np.std(port_data[:-1])
                         mean=sum(port_data[:-1])/ (len(port_data)-1)
-                        if( abs( ((port_data[-1]-mean)/sd) > FLOW_SD_STEPS)):
+                        if(mean > 0.0 and abs( ((port_data[-1]-mean)/sd) > FLOW_SD_STEPS)):
                             print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                            self.mitigation(switch_id, port_no, datapath)
                         else:
                             print(f"✅ Switch {switch_id} Port {port_no} is fine")
                     else:
@@ -126,8 +169,9 @@ class PacketRateMonitor(app_manager.RyuApp):
                     if(len(port_data)>=MAX_DATAPOINTS-1):
                         sd = np.std(port_data[:-1])
                         mean = sum(port_data[:-1])/(len(port_data)-1)
-                        if( abs( ((port_data[-1]-mean)/sd) > ENTROPY_STEPS)):
+                        if(mean > 0.0 and abs( ((port_data[-1]-mean)/sd) > ENTROPY_STEPS)):
                             print(f"❌ Switch {switch_id} Port {port_no} is showing anomaly")
+                            self.mitigation(switch_id, port_no, datapath)
                         else:
                             print(f"✅ Switch {switch_id} Port {port_no} is fine")
                     else:
@@ -179,9 +223,9 @@ class PacketRateMonitor(app_manager.RyuApp):
 
         eth = Ether(msg.data)
         
-        if eth.type == ether_types.ETH_TYPE_LLDP:
-            # ignore LLDP packet
-            return
+        # if eth.type == ether_types.ETH_TYPE_LLDP:
+        #     # ignore LLDP packet
+        #     return
 
         dst_mac = eth.dst
         src_mac = eth.src
